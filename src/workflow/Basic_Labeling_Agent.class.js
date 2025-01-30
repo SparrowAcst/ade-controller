@@ -310,8 +310,11 @@ const Basic_Labeling_Agent = class extends Agent {
                 user: options.task.user,
                 readonly: options.version.readonly,
                 segmentation: options.data.segmentation
-            } :
-            undefined
+            } : (options.data.aiSegmentation) ? {
+                user: options.task.user,
+                readonly: options.version.readonly,
+                segmentation: options.data.aiSegmentation
+            } : undefined
 
         let requestData = {
             "patientId": options.data.examinationId,
