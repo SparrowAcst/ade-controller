@@ -1,0 +1,977 @@
+const { 
+    extend, 
+    isFunction, 
+    find, 
+    remove, 
+    first, 
+    last, 
+    flatten, 
+    sortBy, 
+    uniqBy, 
+    keys, 
+    set, 
+    groupBy,
+    isArray 
+} = require("lodash")
+
+const Diff = require('jsondiffpatch')
+const uuid = require("uuid").v4
+
+const Moment = require('moment');
+const MomentRange = require('moment-range');
+const moment = MomentRange.extendMoment(Moment);
+
+const EventEmitter = require("events")
+
+const NodeCache = require("node-cache")
+const CACHE = new NodeCache({
+    useClones: false,
+    stdTTL: 30 * 60,
+    checkperiod: 5 * 60
+}) // Time to Life = 30*60 s = 30 min, Check Period: 5*60 s = 5 min)
+
+
+let DEFFERED_TIMEOUT = ["5", "mins"]
+
+let DATAVIEW = {
+    labels: d => ({
+        id: d.id
+    }),
+    examinations: d => ({
+        id: d.id
+    })
+}
+
+const docdb = require("../../utils/docdb")
+
+const config = require("../../../.config")
+const db = config.docdb
+const configRB = config.rabbitmq
+
+const { getPublisher, getConsumer } = require("./data-version-messages")
+
+const storeInDB = async event => {
+    let publisher = await getPublisher()
+    publisher.send(extend(event, { command: "store" }))
+}
+
+const delFromDB = async event => {
+    let publisher = await getPublisher()
+    publisher.send(extend(event, { command: "delete" }))
+}
+
+const createVersionChart = require("./data-version-chart")
+
+
+const VersionManager = class extends EventEmitter {
+
+
+    constructor(options) {
+
+        super();
+
+        this.key = options.managerKey;
+
+        ([
+            this.schema,
+            this.dataCollection,
+            this.dataId,
+            this.savepointCollection
+        ] = options.managerKey.split("."));
+
+        this.versions = options.versions
+        this.data = options.data
+        this.on("store", storeInDB)
+        this.on("delete", delFromDB)
+
+    }
+
+
+    getVersion(versionId) {
+        return find(this.versions, v => v.id == versionId)
+    }
+
+    getData(versionId) {
+        let version = find(this.versions, v => v.id == versionId)
+        let data = JSON.parse(JSON.stringify(this.data))
+        if (version) {
+            version.patches.forEach(patch => {
+                Diff.patch(data, patch)
+            })
+        }
+        return data
+    }
+
+
+
+
+    select(selector) {
+        selector = selector || (() => true)
+        return this.versions.filter(selector)
+    }
+
+    updateData(options) {
+
+        let { source, update } = options
+        let version = this.getVersion(source.id)
+        let prevData = JSON.parse(JSON.stringify(this.getData(source.id)))
+        let data = JSON.parse(JSON.stringify(prevData))
+
+        keys(update).forEach(key => {
+            set(data, key, JSON.parse(JSON.stringify(update[key])))
+        })
+        version.patches = version.patches.concat([Diff.diff(prevData, data)]).filter(d => d)
+
+        this.emit("store", {
+            collection: `${this.schema}.${this.savepointCollection}`,
+            data: [version]
+        })
+
+    }
+
+    createBranch(options = {}) {
+
+        try {
+            let { user, source, metadata } = options
+            let parent = this.getVersion(source.id)
+
+            if (!parent) {
+                let mainHead = this.select(v => v.type == "main" && !v.branch)[0]
+                if (!mainHead) {
+                    throw new Error(`Data Version Manager #createBranch: source ${source.id} not found`)
+                }
+                parent = this.getVersion(mainHead.id)
+            }
+
+            // if(parent.type == "main" && parent.branch && parent.branch.length > 0) throw new Error(`Data Version Manager #createBranch: source ${source.id}. Data is locked by another task`)
+
+            let parentData = this.getData(source.id)
+
+            const id = uuid()
+
+            let newBranch = {
+                id,
+                key: `${this.key}.${id}`,
+                dataId: this.dataId,
+                user,
+                prev: [{
+                    id: parent.id
+                }],
+                head: true,
+                patches: parent.patches,
+                createdAt: new Date(),
+                log: (parent.log || []).concat([{
+                    user,
+                    date: new Date(),
+                    versionId: id,
+                    metadata: (metadata || {})
+                }]),
+                readonly: false,
+                dataView: parent.dataView,
+                type: "branch"
+            }
+
+            parent.branch = (parent.branch || []).concat([newBranch.id])
+
+            parent.readonly = true
+            this.versions.push(newBranch)
+            this.emit("store", {
+                collection: `${this.schema}.${this.savepointCollection}`,
+                data: [newBranch, parent]
+            })
+
+
+            return newBranch
+
+        } catch (e) {
+
+            throw e
+
+        }
+    }
+
+    createSavepoint(options = {}) {
+
+        try {
+
+            let { user, source, data, metadata } = options
+
+            let parent = this.getVersion(source.id)
+            if (!parent) throw new Error(`Data Version Manager #createSavePoint: source ${source.id || source} not found`)
+            let parentData = this.getData(source.id)
+
+            const id = uuid()
+
+            let newSavePoint = {
+                id,
+                key: `${this.key}.${id}`,
+                dataId: this.dataId,
+                user,
+                prev: [{
+                    id: parent.id
+                }],
+                log: (parent.log || []).concat([{
+                    user,
+                    date: new Date(),
+                    versionId: id,
+                    metadata: (metadata || {})
+                }]),
+                head: true,
+                createdAt: new Date(),
+                patches: parent.patches.concat([Diff.diff(parentData, data)]).filter(d => d),
+                type: "save",
+                dataView: DATAVIEW[this.dataCollection](data),
+                readonly: false
+            }
+
+            parent.head = false
+            parent.readonly = true
+            parent.save = newSavePoint.id
+
+            this.versions.push(newSavePoint)
+
+            this.emit("store", {
+                collection: `${this.schema}.${this.savepointCollection}`,
+                data: [parent, newSavePoint]
+            })
+
+            return newSavePoint
+
+        } catch (e) {
+
+            throw e
+
+        }
+    }
+
+    createSubmit(options = {}) {
+
+        try {
+
+            let { user, source, data, metadata, defferedTimeout, deffered } = options
+
+            deffered = deffered || !!defferedTimeout
+            defferedTimeout = defferedTimeout || DEFFERED_TIMEOUT
+
+
+            let parent = this.getVersion(source.id)
+            if (!parent) throw new Error(`Data Version Manager #createSubmit: source ${source.id || source} not found`)
+            let parentData = this.getData(source.id)
+
+            const id = uuid()
+
+            let newSubmit = {
+                id,
+                key: `${this.key}.${id}`,
+                dataId: this.dataId,
+                user,
+                prev: [{
+                    id: parent.id
+                }],
+                log: (parent.log || []).concat([{
+                    user,
+                    date: new Date(),
+                    versionId: id,
+                    metadata: (metadata || {})
+                }]),
+                head: true,
+                createdAt: new Date(),
+                patches: parent.patches.concat([Diff.diff(parentData, data)]).filter(d => d),
+                type: "submit",
+                expiredAt: (deffered) ? moment(new Date()).add(...defferedTimeout).toDate() : new Date(),
+                dataView: DATAVIEW[this.dataCollection](data),
+                readonly: false
+            }
+
+            parent.head = false
+            parent.readonly = true
+            parent.submit = newSubmit.id
+
+            this.versions.push(newSubmit)
+
+            this.emit("store", {
+                collection: `${this.schema}.${this.savepointCollection}`,
+                data: [parent, newSubmit]
+            })
+
+            return newSubmit
+
+        } catch (e) {
+
+            throw e
+
+        }
+    }
+
+    rollbackSubmit(options = {}) {
+        try {
+
+            let { user, source, metadata } = options
+
+            let parent = this.getVersion(source.id)
+            if (!parent) throw new Error(`Data Version Manager #createSavePoint: source ${source.id || source} not found`)
+            let sourceData = this.getData(source.id)
+            parent = this.getVersion((parent.prev[0]) ? parent.prev[0].id : undefined)
+            if (!parent) throw new Error(`Data Version Manager #createSavePoint: source ${parent.id || parent} not found`)
+
+            let parentData = this.getData(parent.id)
+
+            const id = uuid()
+
+            let newSavePoint = {
+                id,
+                key: `${this.key}.${id}`,
+                dataId: this.dataId,
+                user,
+                prev: [{
+                    id: parent.id
+                }],
+                log: (parent.log || []).concat([{
+                    user,
+                    date: new Date(),
+                    versionId: id,
+                    metadata: (metadata || {})
+                }]),
+                head: true,
+                createdAt: new Date(),
+                patches: parent.patches.concat([Diff.diff(sourceData, parentData)]).filter(d => d),
+                type: "save",
+                dataView: DATAVIEW[this.dataCollection](parentData),
+                readonly: false
+            }
+
+            parent.head = false
+            parent.readonly = true
+            parent.save = newSavePoint.id
+
+            this.versions.push(newSavePoint)
+
+            this.emit("store", {
+                collection: `${this.schema}.${this.savepointCollection}`,
+                data: [parent, newSavePoint]
+            })
+
+            return newSavePoint
+
+        } catch (e) {
+
+            throw e
+
+        }
+        // try {
+
+        //     let { source } = options
+        //     let self = this.getVersion(source.id)
+
+        //     if (self.lockRollback) return
+        //     if (!self) throw new Error(`Data Version Manager #rollbackSubmit: source ${source.id || source} not found`)
+
+        //     if (self.type != "submit") throw new Error(`Data Version Manager #rollbackSubmit: source ${source.id || source} is not submit`)
+
+        //     let parent = this.getVersion(first(self.prev).id)
+
+        //     parent.head = true
+        //     parent.readonly = false
+        //     delete parent.submit
+        //     remove(this.versions, d => d.id == self.id)
+
+        //     this.emit("store", {
+        //         collection: `${this.schema}.${this.savepointCollection}`,
+        //         data: [parent]
+        //     })
+
+        //     this.emit("delete", {
+        //         collection: `${this.schema}.${this.savepointCollection}`,
+        //         data: [self]
+        //     })
+
+        //     return parent
+
+        // } catch (e) {
+
+        //     throw e
+
+        // }
+    }
+
+    createCommit(options = {}) {
+
+        try {
+
+            let { user, source, data, metadata } = options
+
+            let parent = this.getVersion(source.id)
+            if (!parent) throw new Error(`Data Version Manager #createCommit: source ${source.id || source} not found`)
+
+            const id = uuid()
+
+            let newCommit = {
+                id,
+                key: `${this.key}.${id}`,
+                dataId: this.dataId,
+                prev: [{
+                    id: parent.id
+                }],
+                log: (parent.log || []).concat([{
+                    user,
+                    date: new Date(),
+                    versionId: id,
+                    metadata: (metadata || {})
+                }]),
+                patches: [],
+                head: true,
+                createdAt: new Date(),
+                type: "main",
+                readonly: true,
+                dataView: DATAVIEW[this.dataCollection](data)
+            }
+
+            data.commits = data.commits || []
+            data.commits.push({
+                date: new Date(),
+                log: newCommit.log
+            })
+
+            parent.commit = newCommit.id
+            parent.head = false
+            parent.readonly = true
+
+            let headVersions = this.select(d => d.head == true)
+            headVersions.forEach(v => {
+                v.head = false
+            })
+
+            let mainVersions = this.select(d => !d.user)
+            mainVersions.forEach(v => {
+                let versionData = this.getData(v.id)
+                v.patches = [Diff.diff(data, versionData)].filter(d => d)
+                v.head = false
+            })
+
+            this.versions.push(newCommit)
+
+            this.emit("store", {
+                collection: `${this.schema}.${this.savepointCollection}`,
+                data: [newCommit, parent].concat(headVersions).concat(mainVersions)
+            })
+
+            this.data = data
+
+            this.emit("store", {
+                collection: `${this.schema}.${this.dataCollection}`,
+                data: [data]
+            })
+
+            return newCommit
+
+        } catch (e) {
+
+            throw e
+
+        }
+    }
+
+
+    createMerge(options = {}) {
+
+        try {
+
+
+            let { user, source, data, metadata } = options
+
+            let parents = source.map(s => this.getVersion(s.id))
+
+            if (!parents) throw new Error(`Data Version Manager #merge: source list is empty`)
+
+            let prev = []
+            const id = uuid()
+
+            parents.forEach(parent => {
+                let parentData = this.getData(parent.id)
+                prev.push({
+                    id: parent.id,
+                    patch: parent.patches.concat([Diff.diff(parentData, data)]).filter(d => d)
+                })
+                parent.head = false
+                parent.merge = id
+                parent.readonly = true
+            })
+
+            let newMerge = {
+                id,
+                key: `${this.key}.${id}`,
+                dataId: this.dataId,
+                user,
+                prev,
+                log: sortBy(uniqBy(flatten(parents.map(p => p.log)), d => d.id), d => d.date).concat([{
+                    user,
+                    date: new Date(),
+                    versionId: id,
+                    metadata: (metadata || {})
+                }]),
+                patches: prev[0].patch,
+                head: true,
+                createdAt: new Date(),
+                type: "merge",
+                dataView: DATAVIEW[this.dataCollection](data)
+            }
+
+            this.versions.push(newMerge)
+
+            this.emit("store", {
+                collection: `${this.schema}.${this.savepointCollection}`,
+                data: [newMerge].concat(parents)
+            })
+
+
+            return newMerge
+
+        } catch (e) {
+
+            throw e
+
+        }
+
+    }
+
+    getChart(options) {
+        options = options || {}
+        let versionsView = this.versions.map(v => extend({}, v))
+        return createVersionChart({
+            versions: versionsView,
+            formatComment: options.formatComment,
+            formatDate: options.formatDate
+        })
+    }
+
+    getHistory(options = {}) {
+
+        let { maxDepth, stopAt, version } = options
+
+
+        if (!version) throw new Error((`Data Version Manager #getHistory: version undefined`))
+
+        stopAt = stopAt || (() => false)
+        stopAt = (isFunction(stopAt)) ? stopAt : (() => false)
+        maxDepth = maxDepth || Infinity
+
+        let res = [version]
+        let current = version
+        let f = find(this.versions, v => v.id == ((current.prev) ? (current.prev[0]) ? current.prev[0].id : null : null))
+        let step = 1
+        while (f && (step < maxDepth) && !stopAt(current)) {
+            res.push(f)
+            current = f
+            step++
+            f = find(this.versions, v => v.id == ((current.prev) ? (current.prev[0]) ? current.prev[0].id : null : null))
+        }
+
+        return res
+    }
+
+
+
+
+
+
+}
+
+
+const initVersions = async settings => {
+
+    let schema, dataCollection, savepointCollection, dataId
+
+    // console.log("initVersions", settings)
+
+    let { key } = settings
+
+    if (key) {
+
+        ([schema, dataCollection, dataId, savepointCollection] = key.split("."))
+
+    } else {
+
+        ({ schema, dataCollection, dataId, savepointCollection } = settings)
+
+    }
+
+    let data = await docdb.aggregate({
+        db,
+        collection: `${schema}.${dataCollection}`,
+        pipeline: [{ $match: { id: dataId } }, { $project: { _id: 0 } }]
+    })
+
+    data = data[0]
+
+    const id = uuid()
+
+    let initialCommit = {
+        id,
+        key: `${schema}.${dataCollection}.${dataId}.${savepointCollection}.${id}`,
+        dataId,
+        prev: [],
+        log: [{
+            id,
+            date: new Date(),
+            versionId: id,
+            metadata: {
+                state: "Initialize data versioning"
+            }
+        }],
+        patches: [],
+        head: true,
+        createdAt: new Date(),
+        type: "main",
+        readonly: true,
+        dataView: DATAVIEW[dataCollection](data)
+    }
+
+    await storeInDB({
+        collection: `${schema}.${savepointCollection}`,
+        data: [initialCommit]
+    })
+
+    return {
+        versions: [initialCommit],
+        data
+    }
+
+}
+
+const getManager = async settings => {
+
+    let schema, dataCollection, savepointCollection, dataId
+
+    let { key } = settings
+
+    if (key) {
+
+        ([schema, dataCollection, dataId, savepointCollection] = key.split("."))
+
+    } else {
+
+        ({ schema, dataCollection, dataId, savepointCollection } = settings)
+
+    }
+
+    const managerKey = `${schema}.${dataCollection}.${dataId}.${savepointCollection}`
+
+
+    if (CACHE.has(managerKey)) return CACHE.get(managerKey)
+
+    let versions = await docdb.aggregate({
+        db,
+        collection: `${schema}.${savepointCollection}`,
+        pipeline: [{ $match: { dataId } }, { $project: { _id: 0 } }]
+    })
+
+    if (versions.length == 0) {
+
+        let initial = await initVersions(settings)
+
+        CACHE.set(managerKey, new VersionManager({
+            managerKey,
+            versions: initial.versions,
+            data: initial.data
+        }))
+
+    } else {
+
+        let data = await docdb.aggregate({
+            db,
+            collection: `${schema}.${dataCollection}`,
+            pipeline: [{ $match: { id: dataId } }, { $project: { _id: 0 } }]
+        })
+
+        data = data[0]
+
+        CACHE.set(managerKey, new VersionManager({
+            managerKey,
+            versions,
+            data
+        }))
+
+    }
+
+    return CACHE.get(managerKey)
+
+}
+
+const select = selector => {
+    selector = selector || (() => true)
+    let result = CACHE.keys()
+        .filter(selector)
+        .map(key => CACHE.get(key))
+}
+
+
+const getTimeline = ({ data, startedAt, unit, state, format }) => {
+
+    const range = moment.range(startedAt, moment())
+    let axis = Array.from(range.by(unit, { step: 1 }))
+    let ranges = []
+    for (let i = 0; i < axis.length - 1; i++) {
+        ranges.push(moment.range(axis[i], axis[i + 1]))
+    }
+    ranges.push(moment.range(last(axis), new Date()))
+    
+    let res = data.filter(d => d.description.taskState == state)
+
+    return ranges.map(r => ({
+        date: r.start.toDate(), //format(format),
+        value: res.filter(d => r.contains(moment(d.createdAt))).length
+    }))
+
+}
+
+
+const getEmployeeStats = async (options) => {
+
+    let { user } = options
+
+    user = isArray(user) ? user : [user]
+
+    const startedAt = moment()
+                        .subtract(7, 'days')
+                        .hours(0)
+                        .minutes(0)
+                        .seconds(0)
+                        .toDate()
+    
+    const last24HoursStartedAt = moment()
+                                    .subtract(1, 'days')
+                                    .minutes(0)
+                                    .seconds(0)
+                                    .toDate()
+
+    let pipeline = [
+        {
+            $addFields: {
+                createdAt: {
+                    $dateFromString: {
+                        dateString: "$createdAt",
+                    },
+                },
+            },
+        },
+        {
+            $match: {
+                user: {
+                    $in: user
+                },
+                createdAt: {
+                    $gte: startedAt,
+                },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                createdAt: 1,
+                user: 1,
+                description: 1,
+            },
+        },
+    ]
+
+   
+    let data = await docdb.aggregate({
+        db,
+        collection: `ADE-SETTINGS.task-log`,
+        pipeline
+    })
+
+    // data = sortBy(
+    //     data.filter(d => ["start", "submit"].includes(d.description.taskState)),
+    //     d => d.createdAt
+    // )
+    let result = user.map( u => {
+        let d = data.filter( d => d.user == u)
+        return {
+            user: u,
+            daily: {
+                start: getTimeline({ data: d, startedAt, unit: "day", state: "start", format: "MMM DD" }),
+                submit: getTimeline({ data: d, startedAt, unit: "day", state: "submit", format: "MMM DD"  }),
+                save: getTimeline({ data: d, startedAt, unit: "day", state: "save", format: "MMM DD"  }),
+                rollback: getTimeline({ data: d, startedAt, unit: "day", state: "rollback", format: "MMM DD"  }),
+                    
+            },
+            hourly: {
+                start: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "start", format: "HH:mm"  }),
+                submit: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "submit", format: "HH:mm" }),
+                save: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "save", format: "HH:mm" }),
+                rollback: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "rollback", format: "HH:mm" }),
+            }
+        }
+    })
+    
+    return result    
+
+}
+
+
+module.exports = options => {
+
+    DATAVIEW = (options || {}).dataView || DATAVIEW
+    DEFFERED_TIMEOUT = (options || {}).defferedTimeout || DEFFERED_TIMEOUT
+
+    return {
+        getManager,
+        getPublisher,
+        getConsumer,
+        select,
+        getEmployeeStats
+    }
+
+}
+
+
+
+
+
+
+
+// const test = async () => {
+
+//     const SCHEMA = "strazhesko-part-1"
+//     const DATA_COLLECTION = "labels"
+//     const SAVEPOINTS_COLLECTION = "savepoints"
+//     const DATA_ID = "8f9044eb-c1b5-466b-99f9-dd287e623830"
+
+//     const VERSION_SERVICE = module.exports({
+//         dataView: {
+//             labels: d => ({ id: d.id })
+//         }
+//     })
+
+
+//     const consumer = await VERSION_SERVICE.getConsumer()
+//     const publisher = await VERSION_SERVICE.getPublisher()
+
+//     let manager = await VERSION_SERVICE.getManager({
+//         schema: SCHEMA,
+//         dataCollection: DATA_COLLECTION,
+//         savepointCollection: SAVEPOINTS_COLLECTION,
+//         dataId: DATA_ID
+//     })
+
+
+// /////////////////////////////////////////////////////////////////////////////////////
+
+//     // let version = manager.getVersion("1e0afbea-cb48-4822-9394-dde08c0e2eb6")
+
+//     // let hist = manager.getHistory({
+//     //     version,
+//     //     stopAt: v => v.type == "merge",
+//     //     maxDepth: 2
+//     // })
+
+//     // console.log(hist)
+
+
+//     // let chart = manager.getChart({
+//     //     formatComment: d => last(d.metadata).metadata.comment || ""
+//     // })
+
+//     // console.log(JSON.stringify(chart, null, " "))
+
+//     // await consumer.close()
+//     // await publisher.close()
+
+//     // return
+
+// //////////////////////////////////////////////////////////////////////////////////////
+
+//     let initial = manager.select()[0]
+
+//     let branch1 = manager.createBranch({
+//         source: initial,
+//         user: "Andrey Boldak",
+//         metadata: {
+//             comment: "Create branch 1"
+//         }
+//     })
+
+//     let branch2 = manager.createBranch({
+//         source: initial,
+//         user: "Vasia",
+//         metadata: {
+//             comment: "Create branch 2"
+//         }
+//     })
+
+//     let data = manager.getData(branch1.id)
+//     data.UPD = true
+
+//     let savePoint1 = manager.createSavePoint({
+//         source: branch1,
+//         user: "Andrey Boldak",
+//         data,
+//         metadata: {
+//             comment: "Add savepoint"
+//         }
+//     })
+
+//     data = manager.getData(branch2.id)
+//     data.UPD = false
+
+//     let savePoint2 = manager.createSavePoint({
+//         source: branch2,
+//         user: "Vasia",
+//         data,
+//         metadata: {
+//             comment: "Add another savepoint"
+//         }
+//     })
+
+
+//     let merge = manager.createMerge({
+//         source:[savePoint1, savePoint2],
+//         user: "Andrey Boldak",
+//         data,
+//         metadata:{
+//             comment: "merge data"
+//         },
+
+//     })
+
+//     let submit = manager.createSubmit({
+//         source: merge,
+//         user: "Andrey Boldak",
+//         data,
+//         metadata: {
+//             comment: "SUBMIT"
+//         }
+//     })
+
+//     // manager.rollbackSubmit({
+//     //     source: submit
+//     // })
+
+//     let commit = manager.createCommit({
+//         source: submit,
+//         user: "Andrey Boldak",
+//         data,
+//         metadata: {
+//             comment: "Commit task"
+//         }
+//     })
+
+
+
+//     let chart = manager.getChart({
+//         formatComment: d => last(d.metadata).metadata.comment || ""
+//     })
+
+//     console.log(JSON.stringify(chart, null, " "))
+
+//     setTimeout(async () => {
+//         await consumer.close()
+//         await publisher.close()
+//     }, 10000)
+
+
+// }
+
+
+// test()

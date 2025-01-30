@@ -1,2 +1,1 @@
-# ade-controller
-ADE backend
+# harvest-controller
