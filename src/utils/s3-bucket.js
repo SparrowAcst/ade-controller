@@ -40,7 +40,9 @@ const { Upload } = require("@aws-sdk/lib-storage")
 
 
 // TODO transfer into settings
-const settings = require("../../../sync-data/.config/key/s3/s3.settings.json")
+const settings = require("../../.config").s3
+
+// const settings = require("../../../sync-data/.config/key/s3/s3.settings.json")
 // const settings = require("../../.config/ade-clinic").s3
 const bucket = settings.bucket.default
 console.log("S3 bucket:", bucket)
