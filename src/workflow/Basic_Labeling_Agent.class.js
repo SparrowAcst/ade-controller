@@ -67,7 +67,8 @@ const Basic_Labeling_Agent = class extends Agent {
 
         const employeeService = this.getEmployeeService()
         const { Key } = employeeService
-
+        user = (user.id) ? user : employeeService.employee(user)
+        // console.log(user)
         if(!user.schedule) return false
         if(!isArray(user.schedule)) return false
         if(!user.schedule.includes(this.ALIAS)) return false

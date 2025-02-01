@@ -31,7 +31,7 @@ const findPretendent = async options => {
             console.log("Direct:", user)
             return user    
         } else {
-            console.log("No criteria for Direct assigement:", user)
+            console.log(alias,": No criteria for Direct assigement:", user)
             return 
         }
         

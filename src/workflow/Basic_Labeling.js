@@ -2,7 +2,7 @@
 // TODO pretendentCriteria
 
 
-const { extend } = require("lodash")
+const { extend, isArray } = require("lodash")
 const Agent  = require("./Basic_Labeling_Agent.class")
 const uuid = require("uuid").v4
 
@@ -153,6 +153,8 @@ const Basic_Relabeling_1st_Agent = class extends Agent {
 
         const employeeService = this.getEmployeeService()
         const { Key } = employeeService
+        user = (user.id) ? user : employeeService.employee(user)
+        // console.log("user", user)
 
         if(!user.schedule) return false
         if(!isArray(user.schedule)) return false
@@ -186,6 +188,8 @@ const Basic_Relabeling_2nd_Agent = class extends Agent {
 
         const employeeService = this.getEmployeeService()
         const { Key } = employeeService
+        user = (user.id) ? user : employeeService.employee(user)
+       console.log("user", user)
 
         if(!user.schedule) return false
         if(!isArray(user.schedule)) return false
