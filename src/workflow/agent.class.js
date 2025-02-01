@@ -25,8 +25,15 @@ const findPretendent = async options => {
 
 
     if (user && user != "AUTO_USER_NAME") {
-        console.log("Direct:", user)
-        return user
+        console.log("Direct assigment for:", user)
+        if(agent.pretendentCriteria(user)){
+            console.log("Direct:", user)
+            return user    
+        } else {
+            console.log("No criteria for Direct assigement:", user)
+            return 
+        }
+        
     }
 
     // console.log(alias, AGENTS[alias])
@@ -69,10 +76,18 @@ const createCommand = async (error, message, next) => {
 
         const agent = AGENTS[alias]
 
+        let isPossible = await agent.possibilityOfCreating(key)
+        if(isPossible != true){
+            console.log(`Impossble of creation task: ${key}`)
+            console.log(isPossible)
+            agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
+            next()
+            return
+        }
+
         console.log("CREATE COMMAND")
         let pretendent = await findPretendent(message.content)
         console.log("Create task for pretendent", pretendent)
-
         metadata = extend({}, metadata, {
             task: agent.ALIAS,
             status: "start",
@@ -167,6 +182,16 @@ const Agent = class {
             }
         })
 
+        this.NO_CREATE_OPTIONS = normalize({
+            exchange: {
+                name: 'no_create_task_exchange',
+                options: {
+                    durable: true,
+                    persistent: true
+                }
+            }
+        })
+
         this.consumer = null
         this.feedbackPublisher = null
         this.schedulerPublisher = null
@@ -198,6 +223,10 @@ const Agent = class {
         this.schedulerPublisher = await AmqpManager.createPublisher(this.SCHEDULER_OPTIONS)
         this.schedulerPublisher.use(Middlewares.Json.stringify)
 
+        this.noCreatePublisher = await AmqpManager.createPublisher(this.NO_CREATE_OPTIONS)
+        this.noCreatePublisher.use(Middlewares.Json.stringify)
+
+
         await this.consumer
             .use(Middlewares.Json.parse)
             .use(createCommand)
@@ -213,6 +242,18 @@ const Agent = class {
 
     getEmployeeService() {
         return EMPOLOYEE_SERVICE
+    }
+
+    getVersionService(){
+        return EMPOLOYEE_SERVICE.getVersionService()   
+    }
+
+    async getDataManager(key){
+        
+        let taskKey = EMPOLOYEE_SERVICE.Key(key)
+        let result = await EMPOLOYEE_SERVICE.getVersionService().getManager({key: taskKey.getDataKey()})
+        return result
+    
     }
 
     async close() {
@@ -232,6 +273,10 @@ const Agent = class {
         return true
     }
 
+    async possibilityOfCreating(key){
+        return true
+    }
+
     async create(task) {
         this.feedbackPublisher.send(extend(task, { alias: this.alias }))
     }
@@ -246,6 +291,14 @@ const Agent = class {
         message.publisher = this.FEEDBACK_OPTIONS
         console.log("Send to task scheduler:", message.data.key)
         this.schedulerPublisher.send(message)
+    }
+
+    async sendToNoCreate(message) {
+        message.publisher = this.FEEDBACK_OPTIONS
+        message.date = new Date()
+        message.requestId = uuid()
+        console.log("Send to No Created Task Storage:", message.data.key)
+        this.noCreatePublisher.send(message)
     }
 
     async read(taskKey) {

@@ -31,6 +31,10 @@ module.exports = {
                 collection: "ADE-SETTINGS.workflow-tags",
             },
 
+            portalUsers: {
+                collection: "dj-portal.user"
+            },
+            
             userProfiles: {
                 collection: "ADE-SETTINGS.app-grants",
                 pipeline: [{
@@ -191,6 +195,7 @@ module.exports = {
         router.post("/task-dashboard/fastforward/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.fastForward])
         router.post("/task-dashboard/get-employes/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployes])
         router.post("/task-dashboard/set-employes/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.setEmployesSchedule])
+        // router.post("/task-dashboard/employee-profile/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployeeProfile])
 
         // router.post("/task-dashboard/employee-task/", [ade20TaskDashboard.getTaskList])
         // router.post("/task-dashboard/metadata/", [ade20TaskDashboard.getMetadata])
@@ -199,6 +204,7 @@ module.exports = {
         // router.post("/task-dashboard/fastforward/", [ade20TaskDashboard.fastForward])
         // router.post("/task-dashboard/get-employes/", [ade20TaskDashboard.getEmployes])
         // router.post("/task-dashboard/set-employes/", [ade20TaskDashboard.setEmployesSchedule])
+        router.post("/task-dashboard/employee-profile/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployeeProfile])
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////

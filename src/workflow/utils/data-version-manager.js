@@ -1,17 +1,17 @@
-const { 
-    extend, 
-    isFunction, 
-    find, 
-    remove, 
-    first, 
-    last, 
-    flatten, 
-    sortBy, 
-    uniqBy, 
-    keys, 
-    set, 
+const {
+    extend,
+    isFunction,
+    find,
+    remove,
+    first,
+    last,
+    flatten,
+    sortBy,
+    uniqBy,
+    keys,
+    set,
     groupBy,
-    isArray 
+    isArray
 } = require("lodash")
 
 const Diff = require('jsondiffpatch')
@@ -101,8 +101,6 @@ const VersionManager = class extends EventEmitter {
         }
         return data
     }
-
-
 
 
     select(selector) {
@@ -645,13 +643,9 @@ const getManager = async settings => {
     let { key } = settings
 
     if (key) {
-
         ([schema, dataCollection, dataId, savepointCollection] = key.split("."))
-
     } else {
-
         ({ schema, dataCollection, dataId, savepointCollection } = settings)
-
     }
 
     const managerKey = `${schema}.${dataCollection}.${dataId}.${savepointCollection}`
@@ -705,7 +699,10 @@ const select = selector => {
 }
 
 
-const getTimeline = ({ data, startedAt, unit, state, format }) => {
+const getTimeline = (data, options) => {
+    
+    const {startedAt, unit, format} = options
+    const states = ["start", "submit", "save", "rollback"]
 
     const range = moment.range(startedAt, moment())
     let axis = Array.from(range.by(unit, { step: 1 }))
@@ -714,38 +711,94 @@ const getTimeline = ({ data, startedAt, unit, state, format }) => {
         ranges.push(moment.range(axis[i], axis[i + 1]))
     }
     ranges.push(moment.range(last(axis), new Date()))
+
+    let result = {}
+    states.forEach(state => {
     
-    let res = data.filter(d => d.description.taskState == state)
+        let res = data.filter(d => d.description.taskState == state)
 
-    return ranges.map(r => ({
-        date: r.start.toDate(), //format(format),
-        value: res.filter(d => r.contains(moment(d.createdAt))).length
-    }))
+        result[state]  = ranges.map(r => ({
+            date: r.start.toDate(), //format(format),
+            value: res.filter(d => r.contains(moment(d.createdAt))).length
+        }))
+    
+    })
 
+    return result
 }
 
 
-const getEmployeeStats = async (options) => {
+const getEmployeeStats = async options => {
 
-    let { user } = options
+    const availableIntervals = ["year1", "month1", "day7", "hour24"]
+    let { user, intervals } = options
 
     user = isArray(user) ? user : [user]
 
-    const startedAt = moment()
-                        .subtract(7, 'days')
-                        .hours(0)
-                        .minutes(0)
-                        .seconds(0)
-                        .toDate()
-    
-    const last24HoursStartedAt = moment()
-                                    .subtract(1, 'days')
-                                    .minutes(0)
-                                    .seconds(0)
-                                    .toDate()
+    intervals = intervals || ["hour24"]
+    intervals = isArray(intervals) ? intervals : [intervals]
+    intervals = intervals.filter( i => availableIntervals.includes(i))
+    intervals = (intervals.length == 0) ? ["hour24"] : intervals
 
-    let pipeline = [
-        {
+    const settings = {
+        "year1": {
+            priority: 1,
+            unit: "month", 
+            format: "MMM YYYY", 
+            startedAt: moment()
+                .subtract(1, 'years')
+                .hours(0)
+                .minutes(0)
+                .seconds(0)
+                .toDate()
+        },
+        "month1": {
+            priority: 2,
+            unit: "day", 
+            format: "MMM DD", 
+            startedAt: moment()
+                .subtract(1, 'months')
+                .hours(0)
+                .minutes(0)
+                .seconds(0)
+                .toDate()
+        },
+        "day7": {
+            priority: 3,
+            unit: "day", 
+            format: "MMM DD", 
+            startedAt: moment()
+                .subtract(7, 'days')
+                .hours(0)
+                .minutes(0)
+                .seconds(0)
+                .toDate()
+        },
+        "hour24": {
+            priority: 4,
+            unit: "hour", 
+            format: "HH:mm", 
+            startedAt: moment()
+                .subtract(1, 'days')
+                .minutes(0)
+                .seconds(0)
+                .toDate()
+        },
+        default: {
+            priority: 6,
+            unit: "hour", 
+            format: "HH:mm", 
+            startedAt: moment()
+                .subtract(1, 'days')
+                .minutes(0)
+                .seconds(0)
+                .toDate()
+        }
+    }
+
+    let startedAt = sortBy(intervals.map(i => settings[i] || settings.default), d => d.priority)[0].startedAt
+
+    let pipeline = [{
             $addFields: {
                 createdAt: {
                     $dateFromString: {
@@ -774,38 +827,26 @@ const getEmployeeStats = async (options) => {
         },
     ]
 
-   
     let data = await docdb.aggregate({
         db,
         collection: `ADE-SETTINGS.task-log`,
         pipeline
     })
 
-    // data = sortBy(
-    //     data.filter(d => ["start", "submit"].includes(d.description.taskState)),
-    //     d => d.createdAt
-    // )
-    let result = user.map( u => {
-        let d = data.filter( d => d.user == u)
-        return {
-            user: u,
-            daily: {
-                start: getTimeline({ data: d, startedAt, unit: "day", state: "start", format: "MMM DD" }),
-                submit: getTimeline({ data: d, startedAt, unit: "day", state: "submit", format: "MMM DD"  }),
-                save: getTimeline({ data: d, startedAt, unit: "day", state: "save", format: "MMM DD"  }),
-                rollback: getTimeline({ data: d, startedAt, unit: "day", state: "rollback", format: "MMM DD"  }),
-                    
-            },
-            hourly: {
-                start: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "start", format: "HH:mm"  }),
-                submit: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "submit", format: "HH:mm" }),
-                save: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "save", format: "HH:mm" }),
-                rollback: getTimeline({ data: d, startedAt: last24HoursStartedAt, unit: "hour", state: "rollback", format: "HH:mm" }),
-            }
+    let result = user.map(u => {
+        let d = data.filter(d => d.user == u)
+        let res = {
+            user: u
         }
+        intervals.forEach( i => {
+            res[i] = getTimeline(d, settings[i])
+        })
+
+        return res
+
     })
-    
-    return result    
+
+    return result
 
 }
 

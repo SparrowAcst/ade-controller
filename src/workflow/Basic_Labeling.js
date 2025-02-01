@@ -44,7 +44,7 @@ const Basic_Labeling_1st_Agent = class extends Agent {
             sourceKey: key,
             metadata: extend({}, metadata, {
                 task: "Basic_Labeling_1st",
-                initiator: "assigned automatically",
+                initiator: "triggered external",
                 status: "start"
             })
         })
@@ -55,6 +55,14 @@ const Basic_Labeling_1st_Agent = class extends Agent {
         return ["open", "rollback", "sync", "history", "save", "submit"]
     }
 
+    async possibilityOfCreating(key){
+        
+        let manager = await this.getDataManager(key)
+        let mainHead = manager.select(v => v.type == "main" && !v.branch)[0]     
+        if(mainHead) return true
+        return `Task ${key} cannot be created because the data is locked by another task.`    
+    }
+
 }
 
 const Basic_Labeling_2nd_Agent = class extends Agent {
@@ -62,7 +70,7 @@ const Basic_Labeling_2nd_Agent = class extends Agent {
     constructor(options){
         options = extend({}, options, {
             ALIAS: "Basic_Labeling_2nd",
-            NEXT_AGENT: "Basic_Labeling_Quality_Check",
+            NEXT_AGENT: "Basic_Labeling_Finalization",
             PREV_AGENT: "Basic_Relabeling_1st",
             decoration: {
                 icon: "mdi-numeric-2-box-outline",
@@ -79,34 +87,34 @@ const Basic_Labeling_2nd_Agent = class extends Agent {
 
 }
 
-const Basic_Labeling_Quality_Check_Agent = class extends Agent {
+// const Basic_Labeling_Quality_Check_Agent = class extends Agent {
 
-    constructor(options){
-        options = extend({}, options, {
-            ALIAS: "Basic_Labeling_Quality_Check",
-            NEXT_AGENT: "Basic_Labeling_Finalization",
-            PREV_AGENT: "Basic_Relabeling_2nd",
-            decoration: {
-                icon: "mdi-numeric-3-box-outline",
-                class: "Basic_Labeling_Quality_Check"
-            }    
-        })
+//     constructor(options){
+//         options = extend({}, options, {
+//             ALIAS: "Basic_Labeling_Quality_Check",
+//             NEXT_AGENT: "Basic_Labeling_Finalization",
+//             PREV_AGENT: "Basic_Relabeling_2nd",
+//             decoration: {
+//                 icon: "mdi-numeric-3-box-outline",
+//                 class: "Basic_Labeling_Quality_Check"
+//             }    
+//         })
         
-        super(options)
-    }
+//         super(options)
+//     }
 
-    uiPermissions(){
-        return ["open", "rollback", "sync", "history", "save", "reject", "submit"]
-    }
+//     uiPermissions(){
+//         return ["open", "rollback", "sync", "history", "save", "reject", "submit"]
+//     }
 
-}
+// }
 
 const Basic_Labeling_Finalization_Agent = class extends Agent {
 
     constructor(options){
         options = extend({}, options, {
             ALIAS: "Basic_Labeling_Finalization",
-            PREV_AGENT: "Basic_Labeling_Quality_Recheck",
+            PREV_AGENT: "Basic_Relabeling_2nd",
             decoration: {
                 icon: "mdi-numeric-4-box-outline",
                 class: "Basic_Labeling_Finalization"
@@ -148,7 +156,7 @@ const Basic_Relabeling_2nd_Agent = class extends Agent {
     constructor(options){
         options = extend({}, options, {
             ALIAS: "Basic_Relabeling_2nd",
-            NEXT_AGENT: "Basic_Labeling_Quality_Check",
+            NEXT_AGENT: "Basic_Labeling_Finalization",
             PREV_AGENT: "Basic_Relabeling_1st",
             decoration: {
                 icon: "mdi-numeric-2-box-outline",
@@ -165,38 +173,38 @@ const Basic_Relabeling_2nd_Agent = class extends Agent {
 
 }
 
-const Basic_Labeling_Quality_Recheck_Agent = class extends Agent {
+// const Basic_Labeling_Quality_Recheck_Agent = class extends Agent {
 
-    constructor(options){
-        options = extend({}, options, {
-            ALIAS: "Basic_Labeling_Quality_Recheck",
-            NEXT_AGENT: "Basic_Labeling_Finalization",
-            PREV_AGENT: "Basic_Relabeling_2nd",
-            decoration: {
-                icon: "mdi-numeric-3-box-outline",
-                class: "Basic_Labeling_Quality_Recheck"
-            }    
-        })
+//     constructor(options){
+//         options = extend({}, options, {
+//             ALIAS: "Basic_Labeling_Quality_Recheck",
+//             NEXT_AGENT: "Basic_Labeling_Finalization",
+//             PREV_AGENT: "Basic_Relabeling_2nd",
+//             decoration: {
+//                 icon: "mdi-numeric-3-box-outline",
+//                 class: "Basic_Labeling_Quality_Recheck"
+//             }    
+//         })
         
-        super(options)
-    }
+//         super(options)
+//     }
 
-    uiPermissions(){
-        return ["open", "rollback", "sync", "history", "save", "reject", "submit"]
-    }
+//     uiPermissions(){
+//         return ["open", "rollback", "sync", "history", "save", "reject", "submit"]
+//     }
 
-}
+// }
 
 module.exports = [
     
     Basic_Labeling_1st_Agent,
     Basic_Labeling_2nd_Agent,
-    Basic_Labeling_Quality_Check_Agent,
+    // Basic_Labeling_Quality_Check_Agent,
     Basic_Labeling_Finalization_Agent,
 
     Basic_Relabeling_1st_Agent,
     Basic_Relabeling_2nd_Agent,
-    Basic_Labeling_Quality_Recheck_Agent,
+    // Basic_Labeling_Quality_Recheck_Agent,
 
     require("./Deffered.class")
 

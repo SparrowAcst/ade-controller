@@ -191,6 +191,55 @@ const setEmployesSchedule = async (req, res)=> {
 }
 
 
+const getEmployeeProfile = async (req, res) => {
+    
+    try {
+
+        let { portalUsers } = req.body.cache
+        let { user } = req.body
+        
+        const workflow = await WORKFLOW()
+        agentInstance = workflow.agent("Basic_Labeling_1st")
+        if(!agentInstance) throw new Error(`Agent ${agent} not found`)
+
+
+        const employeeManager = await EMPLOYEE_MANAGER()
+        const { employee, Key } = employeeManager
+        let emp = employee(user)
+        if (!emp) throw new Error(`User ${user.namedAs} not found`)
+        
+        let actualTaskList = emp.taskList || []
+        actualTaskList = actualTaskList.map(t => extend({}, t, { description: Key(t.key).getDescription() }))
+        
+        let schedule = emp.schedule
+        
+        let f = find(portalUsers, pu => emp.email.includes(pu.email))
+
+        let statistics = await agentInstance.getEmployeeStats({user: [user], intervals:["hour24", "day7", "month1", "year1"]})
+
+        res.send({
+            user: {
+                name: user,
+                photo: f.photo,
+                email: f.email,
+                role: emp.role,
+                profile: emp.profile
+            },
+            schedule,
+            actualTaskList,
+            statistics
+        })
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }   
+}
+
+
+
 module.exports = {
     getTaskList,
     getMetadata,
@@ -199,4 +248,5 @@ module.exports = {
     fastForward,
     getEmployes,
     setEmployesSchedule,
+    getEmployeeProfile
 }
