@@ -149,6 +149,17 @@ const Basic_Relabeling_1st_Agent = class extends Agent {
         return ["open", "rollback", "sync", "history", "save", "submit"]
     }
 
+    pretendentCriteria(user) {
+
+        const employeeService = this.getEmployeeService()
+        const { Key } = employeeService
+
+        if(!user.schedule) return false
+        if(!isArray(user.schedule)) return false
+        if(!user.schedule.includes(this.ALIAS)) return false
+        
+        return true
+    }
 }
 
 const Basic_Relabeling_2nd_Agent = class extends Agent {
@@ -171,6 +182,17 @@ const Basic_Relabeling_2nd_Agent = class extends Agent {
         return ["open", "rollback", "sync", "history", "save", "reject", "submit"]
     }
 
+    pretendentCriteria(user) {
+
+        const employeeService = this.getEmployeeService()
+        const { Key } = employeeService
+
+        if(!user.schedule) return false
+        if(!isArray(user.schedule)) return false
+        if(!user.schedule.includes(this.ALIAS)) return false
+        
+        return true
+    }
 }
 
 // const Basic_Labeling_Quality_Recheck_Agent = class extends Agent {
