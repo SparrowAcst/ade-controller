@@ -23,7 +23,8 @@ const findPretendent = async options => {
     // console.log("findPretendent options", options)
     const { employes, Task, Key } = EMPOLOYEE_SERVICE
 
-
+    const agent = AGENTS[alias]
+    
     if (user && user != "AUTO_USER_NAME") {
         console.log("Direct assigment for:", user)
         if(agent.pretendentCriteria(user)){
@@ -38,7 +39,6 @@ const findPretendent = async options => {
 
     // console.log(alias, AGENTS[alias])
 
-    const agent = AGENTS[alias]
     const ctx = await agent.read(key)
     const task = (ctx) ? ctx.task || {} : {}
 
