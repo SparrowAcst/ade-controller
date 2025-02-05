@@ -210,6 +210,8 @@ module.exports = {
         router.post("/workflow/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
         router.get("/workflow/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
         
+        router.post("/workflow/chart", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflowChart])
+        
         router.post("/workflow/start", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.startWorkflow])
         router.post("/workflow/stop", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.stopWorkflow])
 

@@ -239,6 +239,24 @@ const getEmployeeProfile = async (req, res) => {
 }
 
 
+const getWorkflowChart = async (req, res) => {
+    
+    try {
+
+        const { workflow } = req.body
+
+        const workflowService = await WORKFLOW()
+        let workflowInstance = workflowService.workflow(workflow)
+        
+        res.send(workflowInstance.getChart())
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
 
 const getWorkflows = async (req, res) => {
     
@@ -375,6 +393,7 @@ module.exports = {
     getWorkflows,
     startWorkflow,
     stopWorkflow,
+    getWorkflowChart,
 
     getTriggers,
     startTrigger,

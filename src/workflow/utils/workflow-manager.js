@@ -18,6 +18,7 @@ const storeInDB = async event => {
     publisher.send(event)
 }
 
+const getChart = require("./workflow-chart")
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,6 +104,10 @@ const Workflow = class {
 
     await storeInDB(this.options)
     // console.log(`Workflow: ${this.options.WORKFLOW_TYPE} is stopped`)    
+  }
+
+  getChart(){
+    return getChart(this.options)
   }
 
 }
