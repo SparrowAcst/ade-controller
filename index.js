@@ -204,7 +204,23 @@ module.exports = {
         // router.post("/task-dashboard/fastforward/", [ade20TaskDashboard.fastForward])
         // router.post("/task-dashboard/get-employes/", [ade20TaskDashboard.getEmployes])
         // router.post("/task-dashboard/set-employes/", [ade20TaskDashboard.setEmployesSchedule])
-        router.post("/task-dashboard/employee-profile/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployeeProfile])
+        router.post("/task-dashboard/employee-profile/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployeeProfile])
+
+
+        router.post("/workflow/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
+        router.get("/workflow/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
+        
+        router.post("/workflow/start", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.startWorkflow])
+        router.post("/workflow/stop", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.stopWorkflow])
+
+
+        router.post("/trigger/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        router.get("/trigger/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        
+        router.post("/trigger/start", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.startTrigger])
+        router.post("/trigger/stop", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.stopTrigger])
+        router.post("/trigger/update", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.updateTrigger])
+
 
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////

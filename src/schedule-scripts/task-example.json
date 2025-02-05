@@ -1,3 +1,29 @@
+[
+    {
+        "id": "uuid()",
+        "createdAt": "new Date()",
+        
+        "agent": "alias",
+
+        "user": "user",
+        "workflowType": "workflowType",
+        "workflowId": "uuid()",
+        "taskType": "taskType",
+        "taskId": "uuid()",
+        "schema": "schema",
+        "dataCollection": "dataCollection",
+        "savepointCollection": "savepointCollection",
+        
+        "metadata": {
+            "comment": "comment"
+        },
+
+        "publisher": "publisherOptions"
+    }
+]
+
+
+
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const docdb = require("../utils/docdb")
 const Key = require("../workflow/utils/task-key")
@@ -56,7 +82,7 @@ const test = async () => {
     // for (const dataId of data) {
 
         const key = Key()
-            .workflowType("Basic")
+            .workflowType("Basic_Labeling")
             .workflowId(uuid())
             .taskType("Basic_Labeling_1st")
             .taskId(uuid())
@@ -66,7 +92,7 @@ const test = async () => {
             .savepointCollection("savepoints")
             .get()
         
-        console.log(key)
+        // console.log(key)
 
         await publisher.send({
           alias: "Basic_Labeling_1st",

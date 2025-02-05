@@ -2,10 +2,10 @@ const uuid = require("uuid").v4
 const { extend, isArray, sample, isFunction, keys, findLast } = require("lodash")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 
-const config = require("../../.config")
+const config = require("../../../.config")
 const normalize = config.rabbitmq.TEST.normalize
 
-const EmployeeManager = require("./utils/employee-manager")
+const EmployeeManager = require("./employee-manager")
 
 const DELAY = 15 * 1000 // 15 s
 const AUTO_USER_NAME = "assigned automatically"
@@ -192,6 +192,10 @@ const Agent = class {
             }
         })
 
+
+
+
+
         this.consumer = null
         this.feedbackPublisher = null
         this.schedulerPublisher = null
@@ -212,6 +216,14 @@ const Agent = class {
         if (!EMPOLOYEE_SERVICE) {
             EMPOLOYEE_SERVICE = await EmployeeManager()
         }
+
+        console.log("CONSUMER_OPTIONS", this.CONSUMER_OPTIONS)
+        console.log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
+        console.log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
+        console.log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
+
+
+
 
         this.consumer = await AmqpManager.createConsumer(this.CONSUMER_OPTIONS)
 
@@ -238,6 +250,13 @@ const Agent = class {
             .start()
 
         
+    }
+
+    async stop(){
+        await this.consumer.close()
+        await this.feedbackPublisher.close()
+        await this.schedulerPublisher.close()
+        await this.noCreatePublisher.close()
     }
 
     getEmployeeService() {
@@ -352,8 +371,18 @@ const Agent = class {
 
 }
 
+const init = async () => {
+    if (!EMPOLOYEE_SERVICE) {
+            EMPOLOYEE_SERVICE = await EmployeeManager()}
+}
+
 module.exports = {
     agent: alias => AGENTS[alias],
-    register: (alias, instance) => { AGENTS[alias] = instance },
-    Agent
+    register: (alias, instance) => { 
+        console.log("Register", alias, instance)
+
+        AGENTS[alias] = instance 
+    },
+    Agent,
+    init
 }

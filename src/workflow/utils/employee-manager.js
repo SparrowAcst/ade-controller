@@ -89,8 +89,6 @@ const updateTask = async options => {
 
     let prevCtx = await context(sourceKey)
 
-    console.log("prevCtx", prevCtx)
-
     let key = Key(sourceKey)    
 
     let versionManager = await VERSION_SERVICE.getManager({key: key.getDataKey()})

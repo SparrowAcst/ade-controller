@@ -19,7 +19,7 @@ const getRecordData = async (req, res) => {
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
         
         let result = await agentInstance.read(sourceKey)
-        result.permissions = agentInstance.uiPermissions()
+        result.permissions = agentInstance.uiPermissions
         res.send(result)
 
     } catch (e) {

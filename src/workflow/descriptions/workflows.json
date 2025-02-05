@@ -1,0 +1,237 @@
+[{
+  "name": "Innocent Murmurs",
+  "state": "stopped",
+  "agents": [
+    {
+      "name": "Labeling 1st",
+      "type": "initial",
+      "submitTo": "Labeling 2nd",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "for free data",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Labeling_1st"
+      }
+    },
+    {
+      "name": "Labeling 2nd",
+      "type": "intermediate",
+      "submitTo": "Finalization",
+      "rejectTo": "Relabeling 1st",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Labeling_2nd"
+      }
+    },
+    {
+      "name": "Finalization",
+      "type": "final",
+      "rejectTo": "Relabeling 2nd",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-3-box-outline",
+        "class": "Basic_Finalizfnion"
+      }
+    },
+    {
+      "name": "Relabeling 1st",
+      "type": "intermediate",
+      "submitTo": "Labeling 2nd",
+      "assignPretendent": [
+        "allways"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Relabeling_1st"
+      }
+    },
+    {
+      "name": "Relabeling 2nd",
+      "type": "intermediate",
+      "submitTo": "Finalization",
+      "rejectTo": "Relabeling 1st",
+      "assignPretendent": [
+        "allways"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Relabeling_2nd"
+      }
+    }
+  ]
+},{
+  "name": "Basic",
+  "state": "available",
+  "agents": [
+    {
+      "name": "Labeling 1st",
+      "type": "initial",
+      "submitTo": "Labeling 2nd",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "for free data",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Labeling_1st"
+      }
+    },
+    {
+      "name": "Labeling 2nd",
+      "type": "intermediate",
+      "submitTo": "Finalization",
+      "rejectTo": "Relabeling 1st",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Labeling_2nd"
+      }
+    },
+    {
+      "name": "Finalization",
+      "type": "final",
+      "rejectTo": "Relabeling 2nd",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-3-box-outline",
+        "class": "Basic_Finalizfnion"
+      }
+    },
+    {
+      "name": "Relabeling 1st",
+      "type": "intermediate",
+      "submitTo": "Labeling 2nd",
+      "assignPretendent": [
+        "allways"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Relabeling_1st"
+      }
+    },
+    {
+      "name": "Relabeling 2nd",
+      "type": "intermediate",
+      "submitTo": "Finalization",
+      "rejectTo": "Relabeling 1st",
+      "assignPretendent": [
+        "allways"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Relabeling_2nd"
+      }
+    }
+  ]
+}]

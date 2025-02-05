@@ -2,7 +2,7 @@ const uuid = require("uuid").v4
 const { extend, isArray, sample, isFunction, keys } = require("lodash")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const { agent, register } = require("./agent.class")
-const config = require("../../.config")
+const config = require("../../../.config")
 const normalize = config.rabbitmq.TEST.normalize
 const moment = require("moment")
 
@@ -48,8 +48,8 @@ const processMessage = async (err, message, next) => {
 
         if (ctx.expiredAt) {
             if (moment(new Date()).isSameOrBefore(moment(ctx.expiredAt))) {
-                console.log(`Deffered: ${ctx.content.sourceKey} postponed until ${JSON.stringify(ctx.expiredAt)} (${moment(ctx.expiredAt).toNow()})...`)
-                let self = agent("Deffered")
+                console.log(`Deferred: ${ctx.content.sourceKey} postponed until ${JSON.stringify(ctx.expiredAt)} (${moment(ctx.expiredAt).toNow()})...`)
+                let self = agent("Deferred")
                 await self.feedback(ctx)
                 next()
                 return
@@ -58,7 +58,7 @@ const processMessage = async (err, message, next) => {
 
         if (ctx.agent) {
             const respondent = agent(ctx.agent)
-            console.log(`Deffered: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
+            console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
             await respondent.commit(ctx.content)
         }
 
@@ -73,15 +73,19 @@ const processMessage = async (err, message, next) => {
 
 
 
-const Deffered_Agent = class {
+const Deferred_Agent = class {
 
     constructor() {
-        this.WORKFLOW_TYPE = "Basic_Labeling"
-        this.ALIAS = "Deffered"
+        // this.WORKFLOW_TYPE = "Basic_Labeling"
+        this.ALIAS = "Deferred"
+        register(this.ALIAS, this)
     }
 
     async start() {
 
+        console.log("CONSUMER_OPTIONS", CONSUMER_OPTIONS)
+        console.log("FEEDBACK_OPTIONS", FEEDBACK_OPTIONS)
+        
         consumer = await AmqpManager.createConsumer(CONSUMER_OPTIONS)
 
         feedbackPublisher = await AmqpManager.createPublisher(FEEDBACK_OPTIONS)
@@ -101,7 +105,7 @@ const Deffered_Agent = class {
 
             .start()
 
-        register(this.ALIAS, this)
+        
     }
 
     send(message) {
@@ -117,4 +121,4 @@ const Deffered_Agent = class {
 }
 
 
-module.exports = Deffered_Agent
+module.exports = Deferred_Agent

@@ -1,9 +1,9 @@
-
 const { extend, keys, sum, get, isArray, find, groupBy, flatten, uniqBy } = require("lodash")
 const moment = require("moment")
 
 const EMPLOYEE_MANAGER = require("./workflow/utils/employee-manager")
 const WORKFLOW = require("./workflow")
+const TRIGGERS = require("./workflow/utils/trigger-manager")
 
 const normalizeSelector = selectorObject => {
     selectorObject = selectorObject || {}
@@ -105,19 +105,19 @@ const rollback = async (req, res) => {
 
         const employeeManager = await EMPLOYEE_MANAGER()
         const { Key } = employeeManager
-        
+
         const description = Key(sourceKey).getDescription()
-        
+
         const workflow = await WORKFLOW()
         agentInstance = workflow.agent(description.taskType)
-        
-        if(!agentInstance) throw new Error(`Agent ${agent} not found`)
-        
+
+        if (!agentInstance) throw new Error(`Agent ${agent} not found`)
+
         let result = await agentInstance.rollback({
-            user: user.altname, 
+            user: user.altname,
             sourceKey
         })
-        
+
         res.send(result)
 
     } catch (e) {
@@ -136,19 +136,19 @@ const fastForward = async (req, res) => {
 
         const employeeManager = await EMPLOYEE_MANAGER()
         const { Key } = employeeManager
-        
+
         const description = Key(sourceKey).getDescription()
-        
+
         const workflow = await WORKFLOW()
         agentInstance = workflow.agent(description.taskType)
-        
-        if(!agentInstance) throw new Error(`Agent ${agent} not found`)
-        
+
+        if (!agentInstance) throw new Error(`Agent ${agent} not found`)
+
         let result = await agentInstance.fastForward({
-            user: user.altname, 
+            user: user.altname,
             sourceKey
         })
-        
+
         res.send(result)
 
     } catch (e) {
@@ -163,7 +163,7 @@ const fastForward = async (req, res) => {
 const getEmployes = async (req, res) => {
     try {
         const employeeManager = await EMPLOYEE_MANAGER()
-        let result = await employeeManager.employes( emp => emp.schedule)
+        let result = await employeeManager.employes(emp => emp.schedule)
         res.send(result)
     } catch (e) {
 
@@ -174,12 +174,12 @@ const getEmployes = async (req, res) => {
     }
 }
 
-const setEmployesSchedule = async (req, res)=> {
+const setEmployesSchedule = async (req, res) => {
     try {
-        
+
         const { employes } = req.body
         const employeeManager = await EMPLOYEE_MANAGER()
-        await employeeManager.setEmployesSchedule({employes})
+        await employeeManager.setEmployesSchedule({ employes })
         // let result = await employeeManager.employes( emp => emp.schedule)
         res.send({})
     } catch (e) {
@@ -192,30 +192,30 @@ const setEmployesSchedule = async (req, res)=> {
 
 
 const getEmployeeProfile = async (req, res) => {
-    
+
     try {
 
         let { portalUsers } = req.body.cache
         let { user } = req.body
-        
+
         const workflow = await WORKFLOW()
         agentInstance = workflow.agent("Basic_Labeling_1st")
-        if(!agentInstance) throw new Error(`Agent ${agent} not found`)
+        if (!agentInstance) throw new Error(`Agent ${agent} not found`)
 
 
         const employeeManager = await EMPLOYEE_MANAGER()
         const { employee, Key } = employeeManager
         let emp = employee(user)
         if (!emp) throw new Error(`User ${user.namedAs} not found`)
-        
+
         let actualTaskList = emp.taskList || []
         actualTaskList = actualTaskList.map(t => extend({}, t, { description: Key(t.key).getDescription() }))
-        
+
         let schedule = emp.schedule
-        
+
         let f = find(portalUsers, pu => emp.email.includes(pu.email))
 
-        let statistics = await agentInstance.getEmployeeStats({user: [user], intervals:["hour24", "day7", "month1", "year1"]})
+        let statistics = await agentInstance.getEmployeeStats({ user: [user], intervals: ["hour24", "day7", "month1", "year1"] })
 
         res.send({
             user: {
@@ -235,9 +235,131 @@ const getEmployeeProfile = async (req, res) => {
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body
         })
-    }   
+    }
 }
 
+
+
+const getWorkflows = async (req, res) => {
+    
+    try {
+
+        const workflow = await WORKFLOW()
+        let result = workflow.selectWorkflow()
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const startWorkflow = async (req, res) => {
+    
+    try {
+        const { workflow } = req.body
+
+        const workflowService = await WORKFLOW()
+        let workflowInstance = workflowService.workflow(workflow)
+        await workflowInstance.start()
+        
+        res.status(200).send()
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const stopWorkflow = async (req, res) => {
+    
+    try {
+        const { workflow } = req.body
+
+        const workflowService = await WORKFLOW()
+        let workflowInstance = workflowService.workflow(workflow)
+        await workflowInstance.stop()
+        
+        res.status(200).send()
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+
+const getTriggers = async (req, res) => {
+    
+    try {
+
+        let result = await TRIGGERS.select()
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const stopTrigger = async (req, res) => {
+    
+    try {
+        const { id } = req.body
+        let result = await TRIGGERS.update({
+            id,
+            state: "stopped"
+        })
+        res.status(200).send()
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const startTrigger = async (req, res) => {
+    
+    try {
+        const { id } = req.body
+        let result = await TRIGGERS.update({
+            id,
+            state: "available"
+        })
+        res.status(200).send()
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const updateTrigger = async (req, res) => {
+    
+    try {
+        const options = req.body
+        let result = await TRIGGERS.update(options)
+        res.status(200).send()
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
 
 
 module.exports = {
@@ -248,5 +370,14 @@ module.exports = {
     fastForward,
     getEmployes,
     setEmployesSchedule,
-    getEmployeeProfile
+    getEmployeeProfile,
+
+    getWorkflows,
+    startWorkflow,
+    stopWorkflow,
+
+    getTriggers,
+    startTrigger,
+    stopTrigger,
+    updateTrigger
 }

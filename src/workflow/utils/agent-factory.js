@@ -8,39 +8,84 @@ const moment = require("moment")
 const uuid = require("uuid").v4
 
 const DEFAULT_OPTIONS = {
-    WORKFLOW_TYPE: "Basic_Labeling",
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [2, "hours"],
+    DEFFERED_TIMEOUT: [1, "hours"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 10
 }
 
+const checkPretendentCriteria = (agent, user) => {
+    
+    if(agent.assignPretendent.includes("allways")) return true
+
+    const employeeService = agent.getEmployeeService()
+    const { Key } = employeeService
+    user = (user.id) ? user : employeeService.employee(user)
+    // console.log("user", user)
+
+            
+    if(agent.assignPretendent.includes("according to schedule")){
+        if(!user.schedule) return false
+        if(!isArray(user.schedule)) return false
+        if(!user.schedule.includes(agent.ALIAS)) return false
+    }
+
+    if(agent.assignPretendent.includes("according to quota")){
+        user.taskList = user.taskList || []    
+        return user.taskList.filter(t => {
+                return Key(t.key).taskState() != "submit"
+            }).length <= agent.TASK_QUOTE
+    }
+
+    return true
+
+}
 
 
+const checkPossibilityOfCreating = async (agent, key) => {
+    
+    console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
 
+    if(agent.canCreate == "allways") return true
+
+    if(agent.canCreate == "for free data") {
+
+        let manager = await agent.getDataManager(key)
+        let mainHead = manager.select(v => v.type == "main" && !v.branch)[0]     
+        if(mainHead) return true
+        return `Task ${key} cannot be created because the data is locked by another task.`
+    }
+
+    return false    
+
+}
 
 const Basic_Labeling_Agent = class extends Agent {
 
     constructor(options) {
 
         options = extend({}, DEFAULT_OPTIONS, options)
-
+        options.ALIAS = `${options.WORKFLOW_TYPE}_${options.name.split(" ").join("_")}`
+        
         super({
             alias: options.ALIAS,
             FEEDBACK_DELAY: options.FEEDBACK_DELAY
         })
-
+        
         this.ALIAS = options.ALIAS
         this.WORKFLOW_TYPE = options.WORKFLOW_TYPE
         // this.FEEDBACK_DELAY = options.FEEDBACK_DELAY 
         this.DEFFERED_TIMEOUT = options.DEFFERED_TIMEOUT
         this.TASK_QUOTE = options.TASK_QUOTE
-        this.NEXT_AGENT = options.NEXT_AGENT
-        this.PREV_AGENT = options.PREV_AGENT
+        this.NEXT_AGENT = options.NEXT_AGENT || (options.submitTo) ? `${options.WORKFLOW_TYPE}_${options.submitTo.split(" ").join("_")}` : undefined
+        this.PREV_AGENT = options.PREV_AGENT || (options.rejectTo) ? `${options.WORKFLOW_TYPE}_${options.rejectTo.split(" ").join("_")}` : undefined
         this.dataCollection = options.dataCollection
         this.savepointCollection = options.savepointCollection
         this.decoration = options.decoration
+        this.uiPermissions = options.availableCommands
+        this.canCreate = options.canCreate
+        this.assignPretendent = options.assignPretendent
     }
 
     async create({ user, sourceKey, metadata, waitFor, release }) {
@@ -64,20 +109,18 @@ const Basic_Labeling_Agent = class extends Agent {
     }
 
     pretendentCriteria(user) {
-
-        const employeeService = this.getEmployeeService()
-        const { Key } = employeeService
-        user = (user.id) ? user : employeeService.employee(user)
-        // console.log(user)
-        if(!user.schedule) return false
-        if(!isArray(user.schedule)) return false
-        if(!user.schedule.includes(this.ALIAS)) return false
-        user.taskList = user.taskList || []    
-        return user.taskList.filter(t => {
-                return Key(t.key).taskState() != "submit"
-            }).length <= this.TASK_QUOTE
-    
+        return checkPretendentCriteria(this, user)
     }
+
+    async possibilityOfCreating(key){
+        let res = await checkPossibilityOfCreating(this, key)
+        return res
+    }
+
+    uiPermissions(){
+        return this.uiPermissions
+    }
+
 
     async read(taskKey) {
         let result = await super.read(taskKey)
@@ -139,7 +182,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
         // ctx = await this.read(result.key)    
 
-        this.getAgent("Deffered").send({
+        this.getAgent("Deferred").send({
             agent: this.ALIAS,
             expiredAt: moment(new Date()).add(...this.DEFFERED_TIMEOUT).toDate(),
             content: {
@@ -346,4 +389,59 @@ const Basic_Labeling_Agent = class extends Agent {
 
 }
 
-module.exports = Basic_Labeling_Agent
+
+const Initial_Task_Agent = class extends Basic_Labeling_Agent {
+
+    async create({ schema, dataId, metadata }){
+        
+        const { Task, Key } = this.getEmployeeService()
+
+        let key = Key()
+                    .fromDescription({
+                        workflowType: this.WORKFLOW_TYPE,
+                        workflowId: uuid(),
+                        taskType: this.ALIAS,
+                        // taskId: uuid(),
+                        // taskState: "start",
+                        schema,
+                        dataCollection: this.dataCollection,
+                        dataId,
+                        savepointCollection: this.savepointCollection
+                    })
+                    .get()
+       
+        await super.create({
+            sourceKey: key,
+            metadata: extend({}, metadata, {
+                task: this.ALIAS,
+                initiator: "triggered external",
+                status: "start"
+            })
+        })
+    
+    }
+
+}
+
+const Intermediate_Task_Agent = class extends Basic_Labeling_Agent {
+}
+
+
+const Final_Task_Agent = class extends Basic_Labeling_Agent {
+}
+
+const AgentFactory = {
+    initial: Initial_Task_Agent,
+    intermediate: Intermediate_Task_Agent,
+    final: Final_Task_Agent
+}
+
+
+module.exports = options => {
+
+    const { type } = options
+    let agent = new AgentFactory[type](options)
+    return agent
+
+}
+

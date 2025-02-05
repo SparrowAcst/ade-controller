@@ -1,0 +1,8 @@
+[{
+  "name": "Basic test",
+  "state": "stopped",
+  "collection": "ADE-TASK-POOL.test-basic-labeling-strazhesko-part-1",
+  "limit": 10,
+  "period": [5, "minutes"],
+  "triggered_task": 0
+}]  
