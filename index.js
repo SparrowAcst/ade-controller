@@ -207,21 +207,21 @@ module.exports = {
         router.post("/task-dashboard/employee-profile/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployeeProfile])
 
 
-        router.post("/workflow/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
-        router.get("/workflow/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
+        router.post("/workflow/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
+        router.get("/workflow/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
         
-        router.post("/workflow/chart", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflowChart])
+        router.post("/workflow/chart", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflowChart])
         
-        router.post("/workflow/start", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.startWorkflow])
-        router.post("/workflow/stop", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.stopWorkflow])
+        router.post("/workflow/start", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.startWorkflow])
+        router.post("/workflow/stop", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.stopWorkflow])
 
 
-        router.post("/trigger/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
-        router.get("/trigger/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        router.post("/trigger/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        router.get("/trigger/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
         
-        router.post("/trigger/start", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.startTrigger])
-        router.post("/trigger/stop", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.stopTrigger])
-        router.post("/trigger/update", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.updateTrigger])
+        router.post("/trigger/start", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.startTrigger])
+        router.post("/trigger/stop", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.stopTrigger])
+        router.post("/trigger/update", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.updateTrigger])
 
 
 
