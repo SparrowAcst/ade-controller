@@ -289,6 +289,9 @@ const context = async key => {
     let data = versionManager.getData(k.versionId())
 
     let user = employes(user => user.taskList.filter(t => k.getIdentity() == Key(t.key).getIdentity()).length > 0)[0]
+    
+    console.log(user, k.getIdentity())
+
     let task = find((user) ? user.taskList || [] : [], t => k.getIdentity() == Key(t.key).getIdentity())
     
     return {

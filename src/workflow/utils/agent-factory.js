@@ -9,7 +9,8 @@ const uuid = require("uuid").v4
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "hours"],
+    // DEFFERED_TIMEOUT: [1, "hours"],
+    DEFFERED_TIMEOUT: [15, "seconds"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 10

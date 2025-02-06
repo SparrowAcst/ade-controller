@@ -58,8 +58,14 @@ const processMessage = async (err, message, next) => {
 
         if (ctx.agent) {
             const respondent = agent(ctx.agent)
-            console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
-            await respondent.commit(ctx.content)
+            if(respondent.state == "available"){
+                console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
+                await respondent.commit(ctx.content)
+            } else {
+                console.log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
+                let self = agent("Deferred")
+                await self.feedback(ctx)
+            }    
         }
 
         next()

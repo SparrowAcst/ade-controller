@@ -204,6 +204,7 @@ const Agent = class {
         this.name = name
         this.FEEDBACK_DELAY = FEEDBACK_DELAY || DELAY
         this.decoration = decoration
+        this.state = "stopped"
         AGENTS[this.alias] = this
     }
 
@@ -249,6 +250,7 @@ const Agent = class {
             })
             .start()
 
+        this.state = "available"
         
     }
 
@@ -257,6 +259,8 @@ const Agent = class {
         await this.feedbackPublisher.close()
         await this.schedulerPublisher.close()
         await this.noCreatePublisher.close()
+        this.state = "stopped"
+ 
     }
 
     getEmployeeService() {
