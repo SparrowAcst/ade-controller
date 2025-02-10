@@ -17,7 +17,7 @@ const getRecordData = async (req, res) => {
         agentInstance = workflow.agent(description.taskType)
         
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
-        
+        console.log(sourceKey)
         let result = await agentInstance.read(sourceKey)
         result.permissions = agentInstance.uiPermissions
         res.send(result)
@@ -236,6 +236,61 @@ const getEmployeeStats = async (req, res) => {
     res.send(result)
 
 }
+
+
+const getForms = async (req, res) => {
+    try {
+
+        let options = req.body.options
+        const { id, schema } = options
+        
+        const db = req.body.cache.defaultDB
+        const diaTags = req.body.cache.diagnosisTags
+        
+        let data = await docdb.aggregate({
+            db,
+            collection: `${schema}.examinations`,
+            pipeline: [{
+                '$match': {
+                    'id': id
+                }
+            }]
+        })
+
+        data = data[0]
+        let result = {}
+        
+        if (data) {
+
+            result = {
+                patient: data.forms.patient.data,
+                echo: data.forms.echo.data,
+                ekg: data.forms.ekg.data,  
+                examination: {
+                    id: data.id,
+                    patientId: data.id,
+                    state: data.state
+                }
+            }
+
+            if ( result.patient && result.patient.diagnosisTags && result.patient.diagnosisTags.tags ) {
+                result.patient.diagnosisTags.tags = result.patient.diagnosisTags.tags
+                    .map( id => find(diaTags, d => d.id == id))
+                    .filter(t => t)
+            }
+            
+        }
+
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: e.toString(),
+            requestBody: req.body
+        })
+    }
+}
+
 
 
 // const getForms = async (req, res) => {
@@ -499,7 +554,7 @@ module.exports = {
     getMetadata,
     getSegmentationAnalysis,
     getEmployeeStats,
-    // getForms,
+    getForms,
     // getChangelog,
     // getSegmentation,
     // getRecords,

@@ -171,6 +171,8 @@ module.exports = {
         router.post("/labeling/get-version-chart/", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.getVersionChart])
         router.post("/labeling/get-metadata/", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.getMetadata])
         router.post("/labeling/analysis/", [authorize, DBCache, lockCurrentDataset, ade20Labeling.getSegmentationAnalysis])
+        router.post("/labeling/forms/", [authorize, DBCache, lockCurrentDataset, ade20Labeling.getForms])
+        
         router.post("/labeling/stats/", [authorize, DBCache, lockCurrentDataset, ade20Labeling.getEmployeeStats])
 
 
