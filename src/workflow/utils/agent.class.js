@@ -24,17 +24,17 @@ const findPretendent = async options => {
     const { employes, Task, Key } = EMPOLOYEE_SERVICE
 
     const agent = AGENTS[alias]
-    
+
     if (user && user != "AUTO_USER_NAME") {
         console.log("Direct assigment for:", user)
-        if(agent.pretendentCriteria(user)){
+        if (agent.pretendentCriteria(user)) {
             console.log("Direct:", user)
-            return user    
+            return user
         } else {
-            console.log(alias,": No criteria for Direct assigement:", user)
-            return 
+            console.log(alias, ": No criteria for Direct assigement:", user)
+            return
         }
-        
+
     }
 
     // console.log(alias, AGENTS[alias])
@@ -59,79 +59,79 @@ const findPretendent = async options => {
 }
 
 
-const createCommand = async (error, message, next) => {
+// const createCommand = async (error, message, next) => {
 
-    try {
+//     try {
 
-        const { employes, Task, Key } = EMPOLOYEE_SERVICE
+//         const { employes, Task, Key } = EMPOLOYEE_SERVICE
 
-        let {
-            alias,
-            key,
-            user,
-            metadata,
-            waitFor,
-            release
-        } = message.content
+//         let {
+//             alias,
+//             key,
+//             user,
+//             metadata,
+//             waitFor,
+//             release
+//         } = message.content
 
-        const agent = AGENTS[alias]
+//         const agent = AGENTS[alias]
 
-        let isPossible = await agent.possibilityOfCreating(key)
-        if(isPossible != true){
-            console.log(`Impossble of creation task: ${key}`)
-            console.log(isPossible)
-            agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
-            next()
-            return
-        }
+//         let isPossible = await agent.possibilityOfCreating(key)
+//         if(isPossible != true){
+//             console.log(`Impossble of creation task: ${key}`)
+//             console.log(isPossible)
+//             agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
+//             next()
+//             return
+//         }
 
-        console.log("CREATE COMMAND")
-        let pretendent = await findPretendent(message.content)
-        console.log("Create task for pretendent", pretendent)
-        metadata = extend({}, metadata, {
-            task: agent.ALIAS,
-            status: "start",
-            decoration: agent.decoration
-        })
+//         console.log("CREATE COMMAND")
+//         let pretendent = await findPretendent(message.content)
+//         console.log("Create task for pretendent", pretendent)
+//         metadata = extend({}, metadata, {
+//             task: agent.ALIAS,
+//             status: "start",
+//             decoration: agent.decoration
+//         })
 
-        if (pretendent) {
+//         if (pretendent) {
 
-            let task = await Task.create({
-                user: pretendent,
-                alias,
-                sourceKey: key,
-                targetKey: Key(key)
-                    .agent(alias)
-                    .taskId(uuid())
-                    .taskState("start")
-                    .get(),
-                metadata,
-                waitFor
-            })
+//             let task = await Task.create({
+//                 user: pretendent,
+//                 alias,
+//                 sourceKey: key,
+//                 targetKey: Key(key)
+//                     .agent(alias)
+//                     .taskId(uuid())
+//                     .taskState("start")
+//                     .get(),
+//                 metadata,
+//                 waitFor
+//             })
 
-            console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
+//             console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
 
-        } else {
+//         } else {
 
-            console.log(`${agent.alias} > Not assigned ${key}`)
-            await agent.sendToScheduler({
-                data: message.content
-            })
+//             console.log(`${agent.alias} > Not assigned ${key}`)
+//             await agent.sendToScheduler({
+//                 data: message.content
+//             })
 
-        }
+//         }
 
-        if (release) {
-            console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
-            await Task.release(release)
-        }
+//         if (release) {
+//             console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
+//             await Task.release(release)
+//         }
 
 
-        next()
+//         next()
 
-    } catch (e) {
-        throw e
-    }
-}
+//     } catch (e) {
+//         throw e
+//     }
+// }
 
 
 
@@ -242,7 +242,7 @@ const Agent = class {
 
         await this.consumer
             .use(Middlewares.Json.parse)
-            .use(createCommand)
+            .use(this.createCommand)
             .use(Middlewares.Error.Log)
             // .use(Middlewares.Error.BreakChain)
             .use((err, msg, next) => {
@@ -251,32 +251,32 @@ const Agent = class {
             .start()
 
         this.state = "available"
-        
+
     }
 
-    async stop(){
+    async stop() {
         await this.consumer.close()
         await this.feedbackPublisher.close()
         await this.schedulerPublisher.close()
         await this.noCreatePublisher.close()
         this.state = "stopped"
- 
+
     }
 
     getEmployeeService() {
         return EMPOLOYEE_SERVICE
     }
 
-    getVersionService(){
-        return EMPOLOYEE_SERVICE.getVersionService()   
+    getVersionService() {
+        return EMPOLOYEE_SERVICE.getVersionService()
     }
 
-    async getDataManager(key){
-        
+    async getDataManager(key) {
+
         let taskKey = EMPOLOYEE_SERVICE.Key(key)
-        let result = await EMPOLOYEE_SERVICE.getVersionService().getManager({key: taskKey.getDataKey()})
+        let result = await EMPOLOYEE_SERVICE.getVersionService().getManager({ key: taskKey.getDataKey() })
         return result
-    
+
     }
 
     async close() {
@@ -296,12 +296,86 @@ const Agent = class {
         return true
     }
 
-    async possibilityOfCreating(key){
+    async possibilityOfCreating(key) {
         return true
     }
 
     async create(task) {
         this.feedbackPublisher.send(extend(task, { alias: this.alias }))
+    }
+
+    async createCommand(error, message, next) {
+
+        try {
+
+            const { employes, Task, Key } = EMPOLOYEE_SERVICE
+
+            let {
+                alias,
+                key,
+                user,
+                metadata,
+                waitFor,
+                release
+            } = message.content
+
+            const agent = AGENTS[alias]
+
+            let isPossible = await agent.possibilityOfCreating(key)
+            if (isPossible != true) {
+                console.log(`Impossble of creation task: ${key}`)
+                console.log(isPossible)
+                agent.sendToNoCreate(extend({}, { data: message.content, reason: isPossible }))
+                next()
+                return
+            }
+
+            console.log("CREATE COMMAND")
+            let pretendent = await findPretendent(message.content)
+            console.log("Create task for pretendent", pretendent)
+            metadata = extend({}, metadata, {
+                task: agent.ALIAS,
+                status: "start",
+                decoration: agent.decoration
+            })
+
+            if (pretendent) {
+
+                let task = await Task.create({
+                    user: pretendent,
+                    alias,
+                    sourceKey: key,
+                    targetKey: Key(key)
+                        .agent(alias)
+                        .taskId(uuid())
+                        .taskState("start")
+                        .get(),
+                    metadata,
+                    waitFor
+                })
+
+                console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
+
+            } else {
+
+                console.log(`${agent.alias} > Not assigned ${key}`)
+                await agent.sendToScheduler({
+                    data: message.content
+                })
+
+            }
+
+            if (release) {
+                console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
+                await Task.release(release)
+            }
+
+
+            next()
+
+        } catch (e) {
+            throw e
+        }
     }
 
     async feedback(message) {
@@ -367,7 +441,7 @@ const Agent = class {
 
     async merge() {}
 
-    async getEmployeeStats(options){
+    async getEmployeeStats(options) {
         const { getEmployeeStats } = this.getEmployeeService()
         let result = await getEmployeeStats(options)
         return result
@@ -377,15 +451,16 @@ const Agent = class {
 
 const init = async () => {
     if (!EMPOLOYEE_SERVICE) {
-            EMPOLOYEE_SERVICE = await EmployeeManager()}
+        EMPOLOYEE_SERVICE = await EmployeeManager()
+    }
 }
 
 module.exports = {
     agent: alias => AGENTS[alias],
-    register: (alias, instance) => { 
+    register: (alias, instance) => {
         console.log("Register", alias, instance)
 
-        AGENTS[alias] = instance 
+        AGENTS[alias] = instance
     },
     Agent,
     init

@@ -53,6 +53,7 @@ const priorities = selector => {
     return result
 }
 
+
 const processEmployee = (emp, task, employeeOperation) => {
     if (employeeOperation == "insert") {
         emp.taskList.push(task)
@@ -69,6 +70,22 @@ const processEmployee = (emp, task, employeeOperation) => {
     }
 
     return emp
+}
+
+
+const syncAltVersions = (sourceKey, targetKey) => {
+    
+    let emps = employes(emp => {
+        let alts = emp.taskList.map(t => t.altVersions).filter( d => d )
+        return isArray(alts) && alts.includes(sourceKey)
+    })
+    
+    for(let emp of emps){
+        let t = find(emp.taskList, t => t.altVersions.includes(sourceKey))
+        let index = find(t.altVersions, k => k == sourceKey)
+        t.altVersions[index] = targetKey
+        processEmployee(emp, t, "update")
+    }
 }
 
 
@@ -94,7 +111,8 @@ const updateTask = async options => {
         method, 
         defferedTimeout, 
         employeeOperation, 
-        waitFor 
+        waitFor,
+        altVersions 
     } = options
 
     let prevCtx = await context(sourceKey)
@@ -124,10 +142,12 @@ const updateTask = async options => {
         key: Key(targetKey).versionId(version.id).get(),
         user,
         metadata,
+        altVersions,
         waitFor: inheritedWaitFor,
         createdAt: new Date()
     }
 
+    syncAltVersions(sourceKey, task.key)     
     let emp = processEmployee(EMPLOYEE_CACHE.get(user), task, employeeOperation(version))
 
     EMPLOYEE_CACHE.set(user, emp)
@@ -150,7 +170,7 @@ const updateTask = async options => {
 }
 
 const create = async options => {
-    let { user, sourceKey, metadata, waitFor, targetKey } = options
+    let { user, sourceKey, metadata, waitFor, targetKey, altVersions } = options
     
     let task = await updateTask({
         user,
@@ -159,7 +179,8 @@ const create = async options => {
         metadata,
         method: "createBranch",
         employeeOperation: () => "insert",
-        waitFor
+        waitFor,
+        altVersions
     })
 
     return task
@@ -174,7 +195,8 @@ const save = async options => {
         data,
         metadata,
         method: "createSavepoint",
-        employeeOperation: () => "update"
+        employeeOperation: () => "update",
+        altVersions
     })
 
     return task
@@ -190,7 +212,8 @@ const submit = async options => {
         defferedTimeout,
         metadata,
         method: "createSubmit",
-        employeeOperation: () => "update" //version => (moment(new Date()).isSameOrBefore(moment(version.expiredAt))) ? "update" : "delete"
+        employeeOperation: () => "update",
+        altVersions  //version => (moment(new Date()).isSameOrBefore(moment(version.expiredAt))) ? "update" : "delete"
     })
 
     return task
@@ -208,7 +231,8 @@ const rollback = async options => {
         targetKey: Key(sourceKey).taskState("rollback").get(),
         metadata,
         method: "rollbackSubmit",
-        employeeOperation: () => "update"
+        employeeOperation: () => "update",
+        altVersions
     })
 
     return task
@@ -227,7 +251,8 @@ const commit = async options => {
         data,
         metadata,
         method: "createCommit",
-        employeeOperation: () => "update"
+        employeeOperation: () => "update",
+        altVersions
     })
 
     task = await release({ user, sourceKey: task.key })
@@ -300,9 +325,9 @@ const context = async key => {
 
     let user = employes(user => user.taskList.filter(t => k.getIdentity() == Key(t.key).getIdentity()).length > 0)[0]
     
-    console.log(user, k.getIdentity())
+    // console.log(user, k.getIdentity())
 
-    let task = find((user) ? user.taskList || [] : [], t => k.getIdentity() == Key(t.key).getIdentity())
+    let task = find(user ? user.taskList || [] : [], t => k.getIdentity() == Key(t.key).getIdentity())
     
     return {
         user,
@@ -310,6 +335,20 @@ const context = async key => {
         version,
         data
     }
+}
+
+const altVersions = async key => {
+    
+    let user = employes(user => user.taskList.filter(t => k.getIdentity() == Key(t.key).getIdentity()).length > 0)[0]
+    console.log(user, k.getIdentity())
+
+    if(!user) return []
+    
+    let task = find(user.taskList || [], t => k.getIdentity() == Key(t.key).getIdentity())
+    
+    let res = (task.altVersions || []).map( k => context(k))
+    console.log("altVersions", res)
+    return res
 }
 
 const select = selector => {
@@ -357,18 +396,12 @@ const setEmployesSchedule = async options => {
     
 }
 
-
-
 const close = async () => {
     await vs_consumer.close()
     await vs_publisher.close()
     await (await getConsumer()).close()
     await (await getPublisher()).close()
 }
-
-
-
-
 
 const init = async () => {
     
@@ -406,7 +439,8 @@ const init = async () => {
         select,
         context,
         chart,
-        updateData
+        updateData,
+        altVersions
     }
 
     console.log("Employee Manager started")
