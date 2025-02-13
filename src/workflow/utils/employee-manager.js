@@ -85,7 +85,17 @@ const updateData = async options => {
 
 const updateTask = async options => {
 
-    let { user, sourceKey, targetKey, data, metadata, method, defferedTimeout, employeeOperation, waitFor } = options
+    let { 
+        user, 
+        sourceKey, 
+        targetKey, 
+        data, 
+        metadata, 
+        method, 
+        defferedTimeout, 
+        employeeOperation, 
+        waitFor 
+    } = options
 
     let prevCtx = await context(sourceKey)
 

@@ -62,6 +62,125 @@ const checkPossibilityOfCreating = async (agent, key) => {
 
 }
 
+
+const findPretendent = async options => {
+
+    let { user, alias, key } = options
+
+    // console.log("findPretendent options", options)
+    const { employes, Task, Key } = EMPOLOYEE_SERVICE
+
+    const agent = AGENTS[alias]
+    
+    if (user && user != "AUTO_USER_NAME") {
+        console.log("Direct assigment for:", user)
+        if(agent.pretendentCriteria(user)){
+            console.log("Direct:", user)
+            return user    
+        } else {
+            console.log(alias,": No criteria for Direct assigement:", user)
+            return 
+        }
+        
+    }
+
+    // console.log(alias, AGENTS[alias])
+
+    const ctx = await agent.read(key)
+    const task = (ctx) ? ctx.task || {} : {}
+
+    let pretendent = (task.waitFor || []).pop()
+    if (pretendent) {
+        console.log("Wait for", pretendent)
+        return pretendent
+    }
+
+    pretendent = sample(employes(user => agent.pretendentCriteria(user)))
+
+    if (pretendent) {
+        console.log("Auto:", pretendent.namedAs)
+        return pretendent.namedAs
+    }
+
+    console.log("Not found")
+}
+
+
+const createCommand = async (error, message, next) => {
+
+    try {
+
+        const { employes, Task, Key } = EMPOLOYEE_SERVICE
+
+        let {
+            alias,
+            key,
+            user,
+            metadata,
+            waitFor,
+            release
+        } = message.content
+
+        const agent = AGENTS[alias]
+
+        let isPossible = await agent.possibilityOfCreating(key)
+        if(isPossible != true){
+            console.log(`Impossble of creation task: ${key}`)
+            console.log(isPossible)
+            agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
+            next()
+            return
+        }
+
+        console.log("CREATE COMMAND")
+        let pretendent = await findPretendent(message.content)
+        console.log("Create task for pretendent", pretendent)
+        metadata = extend({}, metadata, {
+            task: agent.ALIAS,
+            status: "start",
+            decoration: agent.decoration
+        })
+
+        if (pretendent) {
+
+            let task = await Task.create({
+                user: pretendent,
+                alias,
+                sourceKey: key,
+                targetKey: Key(key)
+                    .agent(alias)
+                    .taskId(uuid())
+                    .taskState("start")
+                    .get(),
+                metadata,
+                waitFor
+            })
+
+            console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
+
+        } else {
+
+            console.log(`${agent.alias} > Not assigned ${key}`)
+            await agent.sendToScheduler({
+                data: message.content
+            })
+
+        }
+
+        if (release) {
+            console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
+            await Task.release(release)
+        }
+
+
+        next()
+
+    } catch (e) {
+        throw e
+    }
+}
+
+
 const Basic_Labeling_Agent = class extends Agent {
 
     constructor(options) {

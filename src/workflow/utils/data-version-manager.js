@@ -715,7 +715,8 @@ const getTimeline = (data, options) => {
     let result = {}
     states.forEach(state => {
     
-        let res = data.filter(d => d.description.taskState == state)
+        // let res = data.filter(d => d.description.taskState == state)
+        let res = data.filter(d => d.metadata.status == state)
 
         result[state]  = ranges.map(r => ({
             date: r.start.toDate(), //format(format),
@@ -823,6 +824,7 @@ const getEmployeeStats = async options => {
                 createdAt: 1,
                 user: 1,
                 description: 1,
+                metadata: 1
             },
         },
     ]
