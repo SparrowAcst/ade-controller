@@ -1,4 +1,4 @@
-const { remove, isFunction, flatten, findIndex, find, extend } = require("lodash")
+const { remove, isFunction, flatten, findIndex, find, extend, isArray, last } = require("lodash")
 const moment = require("moment")
 const uuid = require("uuid").v4
 
@@ -54,6 +54,20 @@ const priorities = selector => {
 }
 
 
+
+const updateEmployee = async emp => {
+
+    EMPLOYEE_CACHE.set(emp.namedAs, emp)
+    
+    publisher = await getPublisher()
+    publisher.send({
+        command: "store",
+        collection: "ADE-SETTINGS.app-grants",
+        data: [emp]
+    })
+
+}
+
 const processEmployee = (emp, task, employeeOperation) => {
     if (employeeOperation == "insert") {
         emp.taskList.push(task)
@@ -73,19 +87,42 @@ const processEmployee = (emp, task, employeeOperation) => {
 }
 
 
-const syncAltVersions = (sourceKey, targetKey) => {
-    
-    let emps = employes(emp => {
-        let alts = emp.taskList.map(t => t.altVersions).filter( d => d )
-        return isArray(alts) && alts.includes(sourceKey)
-    })
-    
-    for(let emp of emps){
-        let t = find(emp.taskList, t => t.altVersions.includes(sourceKey))
-        let index = find(t.altVersions, k => k == sourceKey)
-        t.altVersions[index] = targetKey
-        processEmployee(emp, t, "update")
-    }
+const syncAltVersions = async (sourceKey, targetKey) => {
+    try {
+        
+        let publisher = await getPublisher()
+            
+        let emps = employes(emp => {
+            let alts =flatten( emp.taskList.map(t => t.altVersions).filter( d => d ))
+            return alts.includes(sourceKey)
+        })
+        
+        console.log(emps.map(e => e.namedAs))
+
+        for(let emp of emps){
+            let t = find(emp.taskList, t => (t.altVersions || []).includes(sourceKey))
+            console.log(emp, t.key)
+            if(!t) continue
+            let index = findIndex((t.altVersions || []), k => k == sourceKey)
+            console.log("index", index)
+            if(index >= 0) {
+                t.altVersions[index] = targetKey
+                publisher.send({
+                    command: "store",
+                    collection: "ADE-SETTINGS.app-grants",
+                    data: [emp]
+                })
+            }
+
+        }
+
+        
+
+    } catch(e) {
+        console.log(e.toString(), e.stack)
+    }    
+
+
 }
 
 
@@ -100,77 +137,99 @@ const updateData = async options => {
     })
 }
 
+
+const updateMetadata = async options => {
+
+    let {sourceKey, update } = options
+    let ctx = await context(sourceKey)
+    ctx.task.metadata = extend({}, ctx.task.metadata, update)
+    await updateEmployee(ctx.user)
+    
+}
+
+
 const updateTask = async options => {
+    try {
+        let { 
+            user, 
+            sourceKey, 
+            targetKey, 
+            data, 
+            metadata, 
+            method, 
+            defferedTimeout, 
+            employeeOperation, 
+            waitFor,
+            altVersions,
+            iteration,
+            noSyncAltVersions 
+        } = options
 
-    let { 
-        user, 
-        sourceKey, 
-        targetKey, 
-        data, 
-        metadata, 
-        method, 
-        defferedTimeout, 
-        employeeOperation, 
-        waitFor,
-        altVersions 
-    } = options
+        let prevCtx = await context(sourceKey)
 
-    let prevCtx = await context(sourceKey)
+        let key = Key(sourceKey)    
 
-    let key = Key(sourceKey)    
+        let versionManager = await VERSION_SERVICE.getManager({key: key.getDataKey()})
 
-    let versionManager = await VERSION_SERVICE.getManager({key: key.getDataKey()})
+        let version = versionManager[method]({
+            user,
+            source: { id: key.versionId() },
+            data,
+            altVersions,
+            defferedTimeout,
+            metadata
+        })
 
-    let version = versionManager[method]({
-        user,
-        source: { id: key.versionId() },
-        data,
-        defferedTimeout,
-        metadata
-    })
-
-   
-    let inheritedWaitFor = (prevCtx.task) ? prevCtx.task.waitFor || [] : []
-    if(waitFor){
-        inheritedWaitFor.push(waitFor)
-    }
+       
+        let inheritedWaitFor = (prevCtx.task) ? prevCtx.task.waitFor || [] : []
+        if(waitFor){
+            inheritedWaitFor.push(waitFor)
+        }
 
 
-    targetKey = targetKey || sourceKey
+        targetKey = targetKey || sourceKey
 
-    let task = {
-        key: Key(targetKey).versionId(version.id).get(),
-        user,
-        metadata,
-        altVersions,
-        waitFor: inheritedWaitFor,
-        createdAt: new Date()
-    }
+        let task = {
+            key: Key(targetKey).versionId(version.id).get(),
+            user,
+            metadata,
+            altVersions,
+            iteration: iteration,
+            waitFor: inheritedWaitFor,
+            createdAt: new Date()
+        }
 
-    syncAltVersions(sourceKey, task.key)     
-    let emp = processEmployee(EMPLOYEE_CACHE.get(user), task, employeeOperation(version))
+        
+        let emp = processEmployee(EMPLOYEE_CACHE.get(user), task, employeeOperation(version))
+        EMPLOYEE_CACHE.set(user, emp)
+        
+        if(!noSyncAltVersions) await syncAltVersions(sourceKey, task.key)
+        
+        console.log("!!!", method, sourceKey, targetKey, task)
 
-    EMPLOYEE_CACHE.set(user, emp)
+        publisher = await getPublisher()
+        publisher.send({
+            command: "store",
+            collection: "ADE-SETTINGS.app-grants",
+            data: [emp]
+        })
 
-    publisher = await getPublisher()
-    publisher.send({
-        command: "store",
-        collection: "ADE-SETTINGS.app-grants",
-        data: [emp]
-    })
+        let logPublisher = await getLogPublisher()
+        logPublisher.send({
+            command: "store",
+            collection: "ADE-SETTINGS.task-log",
+            data: [extend({}, task, { id: uuid(), description: Key(task.key).getDescription() })]
+        })
 
-    let logPublisher = await getLogPublisher()
-    logPublisher.send({
-        command: "store",
-        collection: "ADE-SETTINGS.task-log",
-        data: [extend({}, task, { id: uuid(), description: Key(task.key).getDescription() })]
-    })
-
-    return task
+        return task
+    } catch(e) {
+        console.log(e.toString(), e.stack)
+        throw e
+    }    
 }
 
 const create = async options => {
-    let { user, sourceKey, metadata, waitFor, targetKey, altVersions } = options
+    let { user, sourceKey, metadata, waitFor, targetKey, altVersions, iteration, noSyncAltVersions } = options
     
     let task = await updateTask({
         user,
@@ -180,14 +239,18 @@ const create = async options => {
         method: "createBranch",
         employeeOperation: () => "insert",
         waitFor,
-        altVersions
+        altVersions,
+        noSyncAltVersions,
+        iteration: iteration
     })
 
     return task
 }
 
 const save = async options => {
-    let { user, sourceKey, data, metadata } = options
+
+    let { user, sourceKey, data, metadata, altVersions, iteration, noSyncAltVersions } = options
+
     let task = await updateTask({
         user,
         sourceKey,
@@ -196,14 +259,16 @@ const save = async options => {
         metadata,
         method: "createSavepoint",
         employeeOperation: () => "update",
-        altVersions
+        altVersions,
+        noSyncAltVersions,
+        iteration: iteration
     })
 
     return task
 }
 
 const submit = async options => {
-    let { user, sourceKey, metadata, data, defferedTimeout} = options
+    let { user, sourceKey, metadata, data, defferedTimeout, altVersions, iteration, noSyncAltVersions} = options
     let task = await updateTask({
         user,
         sourceKey,
@@ -213,14 +278,16 @@ const submit = async options => {
         metadata,
         method: "createSubmit",
         employeeOperation: () => "update",
-        altVersions  //version => (moment(new Date()).isSameOrBefore(moment(version.expiredAt))) ? "update" : "delete"
+        altVersions,
+        noSyncAltVersions,
+        iteration: iteration  //version => (moment(new Date()).isSameOrBefore(moment(version.expiredAt))) ? "update" : "delete"
     })
 
     return task
 }
 
 const rollback = async options => {
-    let { user, sourceKey, metadata } = options
+    let { user, sourceKey, metadata, altVersions, iteration, noSyncAltVersions } = options
 
     let ctx = await context(sourceKey)
     if(ctx.task && ctx.task.lock) throw new Error(`Cannot apply rollback for locked task ${sourceKey}`)
@@ -232,14 +299,16 @@ const rollback = async options => {
         metadata,
         method: "rollbackSubmit",
         employeeOperation: () => "update",
-        altVersions
+        altVersions,
+        noSyncAltVersions,
+        iteration: iteration
     })
 
     return task
 }
 
 const commit = async options => {
-    let { user, sourceKey, metadata, data } = options
+    let { user, sourceKey, metadata, data, altVersions, iteration, noSyncAltVersions } = options
 
     metadata = (metadata || {})
     metadata.status = "commit"
@@ -252,12 +321,45 @@ const commit = async options => {
         metadata,
         method: "createCommit",
         employeeOperation: () => "update",
-        altVersions
+        altVersions,
+        noSyncAltVersions,
+        iteration: iteration
     })
 
     task = await release({ user, sourceKey: task.key })
 
     return task
+}
+
+const merge = async options => {
+    let { user, sourceKey, metadata, data, altVersions, iteration, noSyncAltVersions } = options
+
+    metadata = (metadata || {})
+    metadata.status = "merge"
+
+    console.log(altVersions)
+
+    let task = await updateTask({
+        user,
+        sourceKey,
+        targetKey: Key(sourceKey).taskState("merge").get(),
+        data,
+        metadata,
+        method: "createMerge",
+        employeeOperation: () => "insert",
+        altVersions: altVersions.map(a => a.task.key),
+        noSyncAltVersions,
+        iteration: iteration
+    })
+
+    await release({ user, sourceKey: task.key })
+    
+    for(let a of altVersions){
+        await release({ user: a.user.namedAs, sourceKey: a.task.key })
+    }
+    
+    return task
+
 }
 
 
@@ -339,16 +441,23 @@ const context = async key => {
 
 const altVersions = async key => {
     
+    let k = Key(key)
+     
     let user = employes(user => user.taskList.filter(t => k.getIdentity() == Key(t.key).getIdentity()).length > 0)[0]
-    console.log(user, k.getIdentity())
+    // console.log(user, k.getIdentity())
 
     if(!user) return []
     
     let task = find(user.taskList || [], t => k.getIdentity() == Key(t.key).getIdentity())
     
-    let res = (task.altVersions || []).map( k => context(k))
-    console.log("altVersions", res)
+    let res = []
+    for(let alt of (task.altVersions || [])){
+        let v = await context(alt)
+        res.push(v)
+    }
+
     return res
+
 }
 
 const select = selector => {
@@ -426,6 +535,8 @@ const init = async () => {
         await getPublisher()
 
         initiated = true
+        console.log("Employee Manager started")
+
     }    
 
     const Task = {
@@ -434,16 +545,17 @@ const init = async () => {
         submit,
         rollback,
         commit,
+        merge,
         lock,
         release,
         select,
         context,
         chart,
         updateData,
+        updateMetadata,
         altVersions
     }
 
-    console.log("Employee Manager started")
 
     return {
         close,
@@ -454,6 +566,7 @@ const init = async () => {
         Key,
         getEmployeeStats,
         setEmployesSchedule,
+        updateEmployee,
 
          Messages: {
             getConsumer,

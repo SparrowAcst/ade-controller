@@ -1,18 +1,38 @@
 
 const parseKey = taskKey => {
     let result = {};
-    ([
-        result.workflowType,
-        result.workflowId,
-        result.taskType,
-        result.taskId,
-        result.taskState,
-        result.schema,
-        result.dataCollection,
-        result.dataId,
-        result.savepointCollection,
-        result.versionId
-    ] = taskKey.split("."));
+    // ([
+    //     result.workflowType,
+    //     result.workflowId,
+    //     result.taskType,
+    //     result.taskId,
+    //     result.taskState,
+    //     result.schema,
+    //     result.dataCollection,
+    //     result.dataId,
+    //     result.savepointCollection,
+    //     result.versionId
+    // ] = taskKey.split("."));
+
+    const fields = [
+        "workflowType",
+        "workflowId",
+        "taskType",
+        "taskId",
+        "taskState",
+        "schema",
+        "dataCollection",
+        "dataId",
+        "savepointCollection",
+        "versionId"
+    ].reverse()
+
+    let partitions = taskKey.split(".")
+    let index = 0
+    for(;partitions.length>0;){
+        result[fields[index]] = partitions.pop()
+        index++
+    }
 
     return result
 }

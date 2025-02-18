@@ -152,7 +152,7 @@ const fastForward = async (req, res) => {
         res.send(result)
 
     } catch (e) {
-
+        console.log(e.toString(), e.stack)
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body

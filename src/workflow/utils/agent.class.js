@@ -1,6 +1,7 @@
 const uuid = require("uuid").v4
 const { extend, isArray, sample, isFunction, keys, findLast } = require("lodash")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
+const segmentationAnalysis = require("../../utils/segmentation/segment-analysis")
 
 const config = require("../../../.config")
 const normalize = config.rabbitmq.TEST.normalize
@@ -26,12 +27,12 @@ const findPretendent = async options => {
     const agent = AGENTS[alias]
 
     if (user && user != "AUTO_USER_NAME") {
-        console.log("Direct assigment for:", user)
+        // console.log("Direct assigment for:", user)
         if (agent.pretendentCriteria(user)) {
-            console.log("Direct:", user)
+            // console.log("Direct:", user)
             return user
         } else {
-            console.log(alias, ": No criteria for Direct assigement:", user)
+            // console.log(alias, ": No criteria for Direct assigement:", user)
             return
         }
 
@@ -44,94 +45,98 @@ const findPretendent = async options => {
 
     let pretendent = (task.waitFor || []).pop()
     if (pretendent) {
-        console.log("Wait for", pretendent)
+        // console.log("Wait for", pretendent)
         return pretendent
     }
 
     pretendent = sample(employes(user => agent.pretendentCriteria(user)))
 
     if (pretendent) {
-        console.log("Auto:", pretendent.namedAs)
+        // console.log("Auto:", pretendent.namedAs)
         return pretendent.namedAs
     }
 
-    console.log("Not found")
+    // console.log("Not found")
 }
 
 
-// const createCommand = async (error, message, next) => {
+const createCommand = async (error, message, next) => {
 
-//     try {
+    try {
 
-//         const { employes, Task, Key } = EMPOLOYEE_SERVICE
+        const { employes, Task, Key } = EMPOLOYEE_SERVICE
 
-//         let {
-//             alias,
-//             key,
-//             user,
-//             metadata,
-//             waitFor,
-//             release
-//         } = message.content
+        let {
+            alias,
+            key,
+            initialState,
+            user,
+            metadata,
+            altVersions,
+            waitFor,
+            release
+        } = message.content
 
-//         const agent = AGENTS[alias]
+        const agent = AGENTS[alias]
+        initialState = initialState || "start"
 
-//         let isPossible = await agent.possibilityOfCreating(key)
-//         if(isPossible != true){
-//             console.log(`Impossble of creation task: ${key}`)
-//             console.log(isPossible)
-//             agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
-//             next()
-//             return
-//         }
+        let isPossible = await agent.possibilityOfCreating(key)
+        if(isPossible != true){
+            console.log(`Impossble of creation task: ${key}`)
+            console.log(isPossible)
+            agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
+            next()
+            return
+        }
 
-//         console.log("CREATE COMMAND")
-//         let pretendent = await findPretendent(message.content)
-//         console.log("Create task for pretendent", pretendent)
-//         metadata = extend({}, metadata, {
-//             task: agent.ALIAS,
-//             status: "start",
-//             decoration: agent.decoration
-//         })
+        // console.log("CREATE COMMAND")
+        let pretendent = await findPretendent(message.content)
+        console.log("Create task for pretendent", pretendent)
+        metadata = extend({}, metadata, {
+            task: agent.ALIAS,
+            status: "start",
+            decoration: agent.decoration
+        })
 
-//         if (pretendent) {
+        if (pretendent) {
 
-//             let task = await Task.create({
-//                 user: pretendent,
-//                 alias,
-//                 sourceKey: key,
-//                 targetKey: Key(key)
-//                     .agent(alias)
-//                     .taskId(uuid())
-//                     .taskState("start")
-//                     .get(),
-//                 metadata,
-//                 waitFor
-//             })
+            let task = await Task.create({
+                user: pretendent,
+                alias,
+                sourceKey: key,
+                targetKey: Key(key)
+                    .agent(alias)
+                    .taskId(uuid())
+                    .taskState(initialState)
+                    .get(),
+                altVersions: altVersions,    
+                metadata,
+                waitFor
+            })
 
-//             console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
+            console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
 
-//         } else {
+        } else {
 
-//             console.log(`${agent.alias} > Not assigned ${key}`)
-//             await agent.sendToScheduler({
-//                 data: message.content
-//             })
+            console.log(`${agent.alias} > Not assigned ${key}`)
+            await agent.sendToScheduler({
+                data: message.content
+            })
 
-//         }
+        }
 
-//         if (release) {
-//             console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
-//             await Task.release(release)
-//         }
+        if (release) {
+            console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
+            await Task.release(release)
+        }
 
 
-//         next()
+        next()
 
-//     } catch (e) {
-//         throw e
-//     }
-// }
+    } catch (e) {
+        throw e
+    }
+}
 
 
 
@@ -193,9 +198,6 @@ const Agent = class {
         })
 
 
-
-
-
         this.consumer = null
         this.feedbackPublisher = null
         this.schedulerPublisher = null
@@ -218,10 +220,10 @@ const Agent = class {
             EMPOLOYEE_SERVICE = await EmployeeManager()
         }
 
-        console.log("CONSUMER_OPTIONS", this.CONSUMER_OPTIONS)
-        console.log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
-        console.log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
-        console.log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
+        // console.log("CONSUMER_OPTIONS", this.CONSUMER_OPTIONS)
+        // console.log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
+        // console.log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
+        // console.log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
 
 
 
@@ -242,7 +244,7 @@ const Agent = class {
 
         await this.consumer
             .use(Middlewares.Json.parse)
-            .use(this.createCommand)
+            .use(createCommand)
             .use(Middlewares.Error.Log)
             // .use(Middlewares.Error.BreakChain)
             .use((err, msg, next) => {
@@ -304,80 +306,7 @@ const Agent = class {
         this.feedbackPublisher.send(extend(task, { alias: this.alias }))
     }
 
-    async createCommand(error, message, next) {
-
-        try {
-
-            const { employes, Task, Key } = EMPOLOYEE_SERVICE
-
-            let {
-                alias,
-                key,
-                user,
-                metadata,
-                waitFor,
-                release
-            } = message.content
-
-            const agent = AGENTS[alias]
-
-            let isPossible = await agent.possibilityOfCreating(key)
-            if (isPossible != true) {
-                console.log(`Impossble of creation task: ${key}`)
-                console.log(isPossible)
-                agent.sendToNoCreate(extend({}, { data: message.content, reason: isPossible }))
-                next()
-                return
-            }
-
-            console.log("CREATE COMMAND")
-            let pretendent = await findPretendent(message.content)
-            console.log("Create task for pretendent", pretendent)
-            metadata = extend({}, metadata, {
-                task: agent.ALIAS,
-                status: "start",
-                decoration: agent.decoration
-            })
-
-            if (pretendent) {
-
-                let task = await Task.create({
-                    user: pretendent,
-                    alias,
-                    sourceKey: key,
-                    targetKey: Key(key)
-                        .agent(alias)
-                        .taskId(uuid())
-                        .taskState("start")
-                        .get(),
-                    metadata,
-                    waitFor
-                })
-
-                console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
-
-            } else {
-
-                console.log(`${agent.alias} > Not assigned ${key}`)
-                await agent.sendToScheduler({
-                    data: message.content
-                })
-
-            }
-
-            if (release) {
-                console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
-                await Task.release(release)
-            }
-
-
-            next()
-
-        } catch (e) {
-            throw e
-        }
-    }
-
+   
     async feedback(message) {
         setTimeout(() => {
             this.feedbackPublisher.send(message)
@@ -403,6 +332,25 @@ const Agent = class {
         let result = await Task.context(taskKey)
         result = extend(result, { agent: this.alias })
         return result
+    }
+
+
+    async getSegmentationAnalysis(sourceKey){
+        
+        let data = await this.read(sourceKey)
+        
+        let segmentation = data.data.segmentation
+        segmentation = segmentation || data.data.aiSegmentation
+        
+        let result
+        if(segmentation){
+            result = segmentationAnalysis.getSegmentationAnalysis(segmentation)
+        } else {
+            result = {}
+        }
+
+        return result
+
     }
 
     async lock({ user, sourceKey }) {
@@ -465,3 +413,4 @@ module.exports = {
     Agent,
     init
 }
+

@@ -338,9 +338,16 @@ const getSegmentationChart = (sa, nonConsistencyIntervals) => {
             }
         },
         tooltip: {
-            formatter: `params => {
-                return params.marker + params.name + ': started at ' + params.value[1] + ' s';
+            formatter: 
+            `params => {
+                return (params.componentType == 'markArea') 
+                    ? 'zone of non-conformity started at ' + params.data.coord[0][0] + ' s'
+                    : params.marker + params.name + ': started at ' + params.value[1] + ' s'
             }`
+    
+            // `params => {
+            //     return params.marker + params.name + ': started at ' + params.value[1] + ' s';
+            // }`
         },
         dataZoom: [{
                 type: 'slider',
@@ -459,7 +466,7 @@ const getMultiSegmentationChart = (segmentations, nonConsistencyIntervals) => {
 
     segmentations.forEach((segmentation, index) => {
 
-        let segments = parse(segmentation)
+        let segments = segmentation //parse(segmentation)
 
         let m = SEGMENT_TYPES.map(type => max(segments.filter(s => s.type == type).map(s => s.hf)) || 1)
         m = zipObject(SEGMENT_TYPES, m)
@@ -496,8 +503,13 @@ const getMultiSegmentationChart = (segmentations, nonConsistencyIntervals) => {
         },
         tooltip: {
             formatter: `params => {
-                return params.marker + params.name + ': started at ' + params.value[1] + ' s';
+                return (params.componentType == 'markArea') 
+                    ? 'zone of non-conformity started at ' + params.data.coord[0][0] + ' s'
+                    : params.marker + params.name + ': started at ' + params.value[1] + ' s'
             }`
+            // `params => {
+            //     return params.marker + params.name + ': started at ' + params.value[1] + ' s';
+            // }`
         },
         dataZoom: [{
                 type: 'slider',
@@ -1580,7 +1592,10 @@ const getNonConsistencyIntervalsForSegments = diffs => {
             isEqual
         ),
         d => d.start
-    )
+    ).map(d => {
+        d.start = (d.start < 0) ? 0 : d.start
+        return d
+    })
 
     return mergeIntervals(pool)
 
@@ -1742,6 +1757,7 @@ module.exports = {
     polygons2v2,
 
     getDataDiff,
+
     mergeData
 
 }

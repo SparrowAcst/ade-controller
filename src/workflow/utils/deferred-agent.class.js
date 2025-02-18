@@ -48,7 +48,7 @@ const processMessage = async (err, message, next) => {
 
         if (ctx.expiredAt) {
             if (moment(new Date()).isSameOrBefore(moment(ctx.expiredAt))) {
-                console.log(`Deferred: ${ctx.content.sourceKey} postponed until ${JSON.stringify(ctx.expiredAt)} (${moment(ctx.expiredAt).toNow()})...`)
+                // console.log(`Deferred: ${ctx.content.sourceKey} postponed until ${JSON.stringify(ctx.expiredAt)} (${moment(ctx.expiredAt).toNow()})...`)
                 let self = agent("Deferred")
                 await self.feedback(ctx)
                 next()
@@ -59,10 +59,10 @@ const processMessage = async (err, message, next) => {
         if (ctx.agent) {
             const respondent = agent(ctx.agent)
             if(respondent.state == "available"){
-                console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
+                // console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
                 await respondent.commit(ctx.content)
             } else {
-                console.log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
+                // console.log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
                 let self = agent("Deferred")
                 await self.feedback(ctx)
             }    
@@ -89,8 +89,8 @@ const Deferred_Agent = class {
 
     async start() {
 
-        console.log("CONSUMER_OPTIONS", CONSUMER_OPTIONS)
-        console.log("FEEDBACK_OPTIONS", FEEDBACK_OPTIONS)
+        // console.log("CONSUMER_OPTIONS", CONSUMER_OPTIONS)
+        // console.log("FEEDBACK_OPTIONS", FEEDBACK_OPTIONS)
         
         consumer = await AmqpManager.createConsumer(CONSUMER_OPTIONS)
 

@@ -3,7 +3,6 @@ const { extend, find, last } = require("lodash")
 const moment = require("moment")
 
 const Key = require("./workflow/utils/task-key")
-const segmentationAnalysis = require("./utils/segmentation/segment-analysis")
 const WORKFLOW = require("./workflow")
 
 const getRecordData = async (req, res) => {
@@ -177,31 +176,37 @@ const getVersionChart = async (req, res) => {
 const getSegmentationAnalysis = async (req, res) => {
      try {
         
-        let { user, sourceKey } = req.body.options
+        let { user, sourceKey, agent } = req.body.options
         
         const description = Key(sourceKey).getDescription()
         
+        agentAlias = agent || description.taskType 
+        console.log("sourceKey", sourceKey)
+        console.log("agentAlias", agentAlias)
+        
         const workflow = await WORKFLOW()
-        agentInstance = workflow.agent(description.taskType)
+        agentInstance = workflow.agent(agentAlias)
         
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
         
-        let data = await agentInstance.read(sourceKey)
+        let result = await agentInstance.getSegmentationAnalysis(Key(sourceKey).taskType(agentAlias).get())
+
+        // let data = await agentInstance.read(sourceKey)
         
-        let segmentation = data.data.segmentation
-        segmentation = segmentation || data.data.aiSegmentation
+        // let segmentation = data.data.segmentation
+        // segmentation = segmentation || data.data.aiSegmentation
         
-        let result
-        if(segmentation){
-            result = segmentationAnalysis.getSegmentationAnalysis(segmentation)
-        } else {
-            result = {}
-        }
+        // let result
+        // if(segmentation){
+        //     result = segmentationAnalysis.getSegmentationAnalysis(segmentation)
+        // } else {
+        //     result = {}
+        // }
 
         res.send(result)
 
     } catch (e) {
-
+        console.log(e.toString())
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body

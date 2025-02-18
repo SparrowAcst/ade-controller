@@ -1,11 +1,15 @@
-// TODO DEFFERED_TIMEOUT
-// TODO pretendentCriteria
+const { extend, find, isArray, sampleSize, uniqBy, flatten, keys } = require("lodash")
 
-
-const { extend, find, isArray } = require("lodash")
 const { Agent } = require("./agent.class")
+const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
+const segmentationAnalysis = require("../../utils/segmentation/segment-analysis")
+
 const moment = require("moment")
 const uuid = require("uuid").v4
+
+
+const dataDiff = require("../../utils/segmentation/data-diff")
+
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
@@ -17,26 +21,26 @@ const DEFAULT_OPTIONS = {
 }
 
 const checkPretendentCriteria = (agent, user) => {
-    
-    if(agent.assignPretendent.includes("allways")) return true
+
+    if (agent.assignPretendent.includes("allways")) return true
 
     const employeeService = agent.getEmployeeService()
     const { Key } = employeeService
     user = (user.id) ? user : employeeService.employee(user)
     // console.log("user", user)
 
-            
-    if(agent.assignPretendent.includes("according to schedule")){
-        if(!user.schedule) return false
-        if(!isArray(user.schedule)) return false
-        if(!user.schedule.includes(agent.ALIAS)) return false
+
+    if (agent.assignPretendent.includes("according to schedule")) {
+        if (!user.schedule) return false
+        if (!isArray(user.schedule)) return false
+        if (!user.schedule.includes(agent.ALIAS)) return false
     }
 
-    if(agent.assignPretendent.includes("according to quota")){
-        user.taskList = user.taskList || []    
+    if (agent.assignPretendent.includes("according to quota")) {
+        user.taskList = user.taskList || []
         return user.taskList.filter(t => {
-                return Key(t.key).taskState() != "submit"
-            }).length <= agent.TASK_QUOTE
+            return Key(t.key).taskState() != "submit"
+        }).length <= agent.TASK_QUOTE
     }
 
     return true
@@ -45,154 +49,36 @@ const checkPretendentCriteria = (agent, user) => {
 
 
 const checkPossibilityOfCreating = async (agent, key) => {
-    
-    console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
 
-    if(agent.canCreate == "allways") return true
+    // console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
 
-    if(agent.canCreate == "for free data") {
+    if (agent.canCreate == "allways") return true
+
+    if (agent.canCreate == "for free data") {
 
         let manager = await agent.getDataManager(key)
-        let mainHead = manager.select(v => v.type == "main" && !v.branch)[0]     
-        if(mainHead) return true
+        let mainHead = manager.select(v => v.type == "main" && !v.branch)[0]
+        if (mainHead) return true
         return `Task ${key} cannot be created because the data is locked by another task.`
     }
 
-    return false    
+    return false
 
 }
 
 
-const findPretendent = async options => {
-
-    let { user, alias, key } = options
-
-    // console.log("findPretendent options", options)
-    const { employes, Task, Key } = EMPOLOYEE_SERVICE
-
-    const agent = AGENTS[alias]
-    
-    if (user && user != "AUTO_USER_NAME") {
-        console.log("Direct assigment for:", user)
-        if(agent.pretendentCriteria(user)){
-            console.log("Direct:", user)
-            return user    
-        } else {
-            console.log(alias,": No criteria for Direct assigement:", user)
-            return 
-        }
-        
-    }
-
-    // console.log(alias, AGENTS[alias])
-
-    const ctx = await agent.read(key)
-    const task = (ctx) ? ctx.task || {} : {}
-
-    let pretendent = (task.waitFor || []).pop()
-    if (pretendent) {
-        console.log("Wait for", pretendent)
-        return pretendent
-    }
-
-    pretendent = sample(employes(user => agent.pretendentCriteria(user)))
-
-    if (pretendent) {
-        console.log("Auto:", pretendent.namedAs)
-        return pretendent.namedAs
-    }
-
-    console.log("Not found")
-}
-
-
-const createCommand = async (error, message, next) => {
-
-    try {
-
-        const { employes, Task, Key } = EMPOLOYEE_SERVICE
-
-        let {
-            alias,
-            key,
-            user,
-            metadata,
-            waitFor,
-            release
-        } = message.content
-
-        const agent = AGENTS[alias]
-
-        let isPossible = await agent.possibilityOfCreating(key)
-        if(isPossible != true){
-            console.log(`Impossble of creation task: ${key}`)
-            console.log(isPossible)
-            agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
-            next()
-            return
-        }
-
-        console.log("CREATE COMMAND")
-        let pretendent = await findPretendent(message.content)
-        console.log("Create task for pretendent", pretendent)
-        metadata = extend({}, metadata, {
-            task: agent.ALIAS,
-            status: "start",
-            decoration: agent.decoration
-        })
-
-        if (pretendent) {
-
-            let task = await Task.create({
-                user: pretendent,
-                alias,
-                sourceKey: key,
-                targetKey: Key(key)
-                    .agent(alias)
-                    .taskId(uuid())
-                    .taskState("start")
-                    .get(),
-                metadata,
-                waitFor
-            })
-
-            console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
-
-        } else {
-
-            console.log(`${agent.alias} > Not assigned ${key}`)
-            await agent.sendToScheduler({
-                data: message.content
-            })
-
-        }
-
-        if (release) {
-            console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
-            await Task.release(release)
-        }
-
-
-        next()
-
-    } catch (e) {
-        throw e
-    }
-}
-
-
-const Basic_Labeling_Agent = class extends Agent {
+const Cross_Merge_Agent = class extends Agent {
 
     constructor(options) {
 
         options = extend({}, DEFAULT_OPTIONS, options)
         options.ALIAS = `${options.WORKFLOW_TYPE}_${options.name.split(" ").join("_")}`
-        
+
         super({
             alias: options.ALIAS,
             FEEDBACK_DELAY: options.FEEDBACK_DELAY
         })
-        
+
         this.ALIAS = options.ALIAS
         this.WORKFLOW_TYPE = options.WORKFLOW_TYPE
         // this.FEEDBACK_DELAY = options.FEEDBACK_DELAY 
@@ -206,9 +92,13 @@ const Basic_Labeling_Agent = class extends Agent {
         this.uiPermissions = options.availableCommands
         this.canCreate = options.canCreate
         this.assignPretendent = options.assignPretendent
+        this.initialStatus = options.initialStatus || "start"
+        this.noSyncAltVersions = true
+        // console.log(this)
     }
 
-    async create({ user, sourceKey, metadata, waitFor, release }) {
+
+    async create({ user, sourceKey, metadata, waitFor, release, altVersions }) {
 
         console.log(`${this.ALIAS} create...`)
 
@@ -217,41 +107,82 @@ const Basic_Labeling_Agent = class extends Agent {
         await super.create({
             user,
             key: sourceKey,
+            initialStatus: this.initialStatus,
+            altVersions,
             metadata: extend({}, metadata, {
                 task: this.ALIAS,
                 status: "start",
                 decoration: this.decoration
             }),
+            noSyncAltVersions: this.noSyncAltVersions,
             waitFor,
             release
         })
 
     }
 
+
     pretendentCriteria(user) {
         return checkPretendentCriteria(this, user)
     }
 
-    async possibilityOfCreating(key){
+    async possibilityOfCreating(key) {
         let res = await checkPossibilityOfCreating(this, key)
         return res
     }
 
-    uiPermissions(){
+    uiPermissions() {
         return this.uiPermissions
     }
 
 
     async read(taskKey) {
-        let result = await super.read(taskKey)
-        result = extend(result, { uiPermissions: this.uiPermissions })
+
+        const { Task } = this.getEmployeeService()
+        let result = await Task.context(taskKey)
+        let altVersions = await Task.altVersions(taskKey)
+
+        let diffs = altVersions.map(alt => {
+            return dataDiff.getDifference(result.data, alt.data)
+        })
+
+        result = extend(result, {
+            agent: this.alias,
+            altVersions,
+            dataDiff: uniqBy(flatten(diffs.map(d => d.formatted.map(d => d.key)))),
+            uiPermissions: this.uiPermissions
+        })
+
+        return result
+    }
+
+
+    async getSegmentationAnalysis(sourceKey) {
+        
+        const { Key } = this.getEmployeeService()
+        
+        let data = await this.read(sourceKey)
+        let result = await super.getSegmentationAnalysis(sourceKey)
+
+        let segmentation = segmentationAnalysis.parse(data.data.segmentation).segments
+        let altSegmentations = data.altVersions
+            .map(a => a.data.segmentation)
+            .map(d => (d) ? segmentationAnalysis.parse(d).segments : [])
+
+        let segmentations =  [segmentation].concat(altSegmentations)   
+        if (altSegmentations.length > 0) {
+            result.diff = segmentationAnalysis.getSegmentsDiff(segmentations)
+            let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
+            result.charts.segmentation = segmentationAnalysis.getMultiSegmentationChart(segmentations, inconsistency)
+        }
+
+
         return result
     }
 
     async save({ user, sourceKey, data, metadata }) {
 
         console.log(`${this.ALIAS} save...`)
-
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
 
@@ -261,7 +192,10 @@ const Basic_Labeling_Agent = class extends Agent {
         let result = await Task.save({
             user,
             sourceKey,
+            iteration: ctx.task.iteration,
             data,
+            altVersions: ctx.task.altVersions,
+            noSyncAltVersions: this.noSyncAltVersions,
             metadata: extend({}, metadata, {
                 task: this.ALIAS,
                 initiator,
@@ -274,6 +208,7 @@ const Basic_Labeling_Agent = class extends Agent {
         return result
 
     }
+
 
     async submit({ user, sourceKey, data, metadata }) {
 
@@ -294,7 +229,7 @@ const Basic_Labeling_Agent = class extends Agent {
                 task: this.ALIAS,
                 initiator,
                 employee: user,
-                expiredAt: moment(new Date()).add(...this.DEFFERED_TIMEOUT).toDate(),    
+                expiredAt: moment(new Date()).add(...this.DEFFERED_TIMEOUT).toDate(),
                 status: "submit",
                 decoration: this.decoration
             })
@@ -330,9 +265,9 @@ const Basic_Labeling_Agent = class extends Agent {
         const { Task } = employeeService
 
         let ctx = await this.read(sourceKey)
-        
-        if(ctx.task && ctx.task.lock) return 
-        
+
+        if (ctx.task && ctx.task.lock) return
+
         let initiator = ctx.task.metadata.initiator
 
         let result = await Task.rollback({
@@ -351,7 +286,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     }
 
-    async fastForward({ user, sourceKey}) {
+    async fastForward({ user, sourceKey }) {
 
         console.log(`${this.ALIAS} fastForward...`)
 
@@ -363,13 +298,12 @@ const Basic_Labeling_Agent = class extends Agent {
         if (!f) {
             return
         }
-        
+
         let ctx = await this.read(sourceKey)
-        
-        if(ctx.task && ctx.task.lock) return 
-        
-        await this.commit(
-            {
+
+        if (ctx.task && ctx.task.lock) return
+
+        await this.commit({
                 user,
                 data: ctx.data,
                 sourceKey,
@@ -381,13 +315,13 @@ const Basic_Labeling_Agent = class extends Agent {
                 }
             }
 
-        // {
-        //     user,
-        //     sourceKey,
-        //     data: ctx.data,
-        //     metadata: ctx.task.metadata 
-        // }
-        )        
+            // {
+            //     user,
+            //     sourceKey,
+            //     data: ctx.data,
+            //     metadata: ctx.task.metadata 
+            // }
+        )
 
     }
 
@@ -451,6 +385,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     }
 
+
     async reject({ user, sourceKey, metadata }) {
 
         console.log(`${this.ALIAS} reject...`)
@@ -466,6 +401,7 @@ const Basic_Labeling_Agent = class extends Agent {
         let result = await this.getAgent(this.PREV_AGENT).create({
             user: initiator,
             sourceKey,
+            altVersions: ctx.task.altVersions,
             metadata: extend({}, metadata, {
                 rejector: user,
                 initiator: user,
@@ -483,16 +419,28 @@ const Basic_Labeling_Agent = class extends Agent {
 
         let options = await this.read(sourceKey)
         if (!options) return {}
+            
+        let altSegmentations = options.altVersions
+            .map(a => a.data.segmentation)
+            .map(d => (d) ? segmentationAnalysis.parse(d).segments : [])
+
+        let inconsistency = []
+        if (altSegmentations.length > 0) {
+            let diff = segmentationAnalysis.getSegmentsDiff(altSegmentations)
+            inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(diff)
+            inconsistency = inconsistency.map(d => [d.start.toFixed(3), d.end.toFixed(3)])
+        }    
+
 
         let segmentationData = (options.data.segmentation) ? {
-                user: options.task.user,
-                readonly: options.version.readonly,
-                segmentation: options.data.segmentation
-            } : (options.data.aiSegmentation) ? {
-                user: options.task.user,
-                readonly: options.version.readonly,
-                segmentation: options.data.aiSegmentation
-            } : undefined
+            user: options.task.user,
+            readonly: options.version.readonly,
+            segmentation: options.data.segmentation
+        } : (options.data.aiSegmentation) ? {
+            user: options.task.user,
+            readonly: options.version.readonly,
+            segmentation: options.data.aiSegmentation
+        } : undefined
 
         let requestData = {
             "patientId": options.data.examinationId,
@@ -504,18 +452,23 @@ const Basic_Labeling_Agent = class extends Agent {
             "Systolic murmurs": options.data["Systolic murmurs"],
             "Diastolic murmurs": options.data["Diastolic murmurs"],
             "Other murmurs": options.data["Other murmurs"],
-            "inconsistency": [],
-            "data": (segmentationData) ? [segmentationData] : []
+            inconsistency,
+            "data": ((segmentationData) ? [segmentationData] : [])
+                    .concat(options.altVersions.map((a, index) => ({
+                        user: a.version.user +"-"+index,
+                        readonly: false,
+                        segmentation: altSegmentations[index]
+                    })))
         }
 
         return requestData
     }
 
-    async updateSegmentationData({sourceKey, data}){
-        
+    async updateSegmentationData({ sourceKey, data }) {
+
         await this.updateData({
-            sourceKey, 
-            update:{
+            sourceKey,
+            update: {
                 segmentation: data
             }
         })
@@ -524,58 +477,4 @@ const Basic_Labeling_Agent = class extends Agent {
 }
 
 
-const Initial_Task_Agent = class extends Basic_Labeling_Agent {
-
-    async create({ schema, dataId, metadata }){
-        
-        const { Task, Key } = this.getEmployeeService()
-
-        let key = Key()
-                    .fromDescription({
-                        workflowType: this.WORKFLOW_TYPE,
-                        workflowId: uuid(),
-                        taskType: this.ALIAS,
-                        // taskId: uuid(),
-                        // taskState: "start",
-                        schema,
-                        dataCollection: this.dataCollection,
-                        dataId,
-                        savepointCollection: this.savepointCollection
-                    })
-                    .get()
-       
-        await super.create({
-            sourceKey: key,
-            metadata: extend({}, metadata, {
-                task: this.ALIAS,
-                initiator: "triggered external",
-                status: "start"
-            })
-        })
-    
-    }
-
-}
-
-const Intermediate_Task_Agent = class extends Basic_Labeling_Agent {
-}
-
-
-const Final_Task_Agent = class extends Basic_Labeling_Agent {
-}
-
-const AgentFactory = {
-    initial: Initial_Task_Agent,
-    intermediate: Intermediate_Task_Agent,
-    final: Final_Task_Agent
-}
-
-
-module.exports = options => {
-
-    const { type } = options
-    let agent = new AgentFactory[type](options)
-    return agent
-
-}
-
+module.exports = Cross_Merge_Agent

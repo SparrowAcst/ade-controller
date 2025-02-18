@@ -1,122 +1,4 @@
 [{
-  "name": "Innocent Murmurs",
-  "state": "stopped",
-  "agents": [
-    {
-      "name": "Labeling 1st",
-      "type": "initial",
-      "submitTo": "Labeling 2nd",
-      "assignPretendent": [
-        "according to schedule",
-        "according to quota"
-      ],
-      "canCreate": "for free data",
-      "availableCommands": [
-        "open",
-        "rollback",
-        "sync",
-        "history",
-        "save",
-        "submit"
-      ],
-      "decoration": {
-        "icon": "mdi-numeric-1-box-outline",
-        "class": "Basic_Labeling_1st"
-      }
-    },
-    {
-      "name": "Labeling 2nd",
-      "type": "intermediate",
-      "submitTo": "Finalization",
-      "rejectTo": "Relabeling 1st",
-      "assignPretendent": [
-        "according to schedule",
-        "according to quota"
-      ],
-      "canCreate": "allways",
-      "availableCommands": [
-        "open",
-        "rollback",
-        "sync",
-        "history",
-        "save",
-        "submit",
-        "reject"
-      ],
-      "decoration": {
-        "icon": "mdi-numeric-2-box-outline",
-        "class": "Basic_Labeling_2nd"
-      }
-    },
-    {
-      "name": "Finalization",
-      "type": "final",
-      "rejectTo": "Relabeling 2nd",
-      "assignPretendent": [
-        "according to schedule",
-        "according to quota"
-      ],
-      "canCreate": "allways",
-      "availableCommands": [
-        "open",
-        "rollback",
-        "sync",
-        "history",
-        "save",
-        "submit",
-        "reject"
-      ],
-      "decoration": {
-        "icon": "mdi-numeric-3-box-outline",
-        "class": "Basic_Finalizfnion"
-      }
-    },
-    {
-      "name": "Relabeling 1st",
-      "type": "intermediate",
-      "submitTo": "Labeling 2nd",
-      "assignPretendent": [
-        "allways"
-      ],
-      "canCreate": "allways",
-      "availableCommands": [
-        "open",
-        "rollback",
-        "sync",
-        "history",
-        "save",
-        "submit"
-      ],
-      "decoration": {
-        "icon": "mdi-numeric-1-box-outline",
-        "class": "Basic_Relabeling_1st"
-      }
-    },
-    {
-      "name": "Relabeling 2nd",
-      "type": "intermediate",
-      "submitTo": "Finalization",
-      "rejectTo": "Relabeling 1st",
-      "assignPretendent": [
-        "allways"
-      ],
-      "canCreate": "allways",
-      "availableCommands": [
-        "open",
-        "rollback",
-        "sync",
-        "history",
-        "save",
-        "submit",
-        "reject"
-      ],
-      "decoration": {
-        "icon": "mdi-numeric-2-box-outline",
-        "class": "Basic_Relabeling_2nd"
-      }
-    }
-  ]
-},{
   "name": "Basic",
   "state": "available",
   "agents": [
@@ -233,5 +115,582 @@
         "class": "Basic_Relabeling_2nd"
       }
     }
-  ]
+  ],
+  "WORKFLOW_TYPE": "Basic",
+  "log": [
+    {
+      "date": "2025-02-05T08:08:25.478Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T08:13:21.216Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T10:48:22.460Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T10:49:02.668Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T10:49:23.930Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:26:04.615Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:26:32.360Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:26:47.142Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:26:53.545Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:28:09.661Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:28:23.181Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:33:31.867Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:34:57.340Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:36:20.265Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:37:04.715Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:37:38.880Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:51:55.136Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T14:52:14.142Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:57:29.497Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T14:58:57.321Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T15:01:55.096Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T15:23:43.017Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T15:35:07.171Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T16:57:11.934Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T16:59:56.513Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T17:23:13.612Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T17:31:56.216Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T17:32:16.353Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T17:34:05.651Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T18:06:23.123Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T18:06:58.099Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T18:13:03.823Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T18:34:09.976Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T18:35:18.842Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T20:51:36.129Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-05T20:53:10.720Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-05T21:12:12.786Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T10:55:07.247Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T11:28:22.124Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T11:32:56.041Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T11:33:13.602Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T11:34:57.480Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T11:35:46.921Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T11:36:20.015Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T11:37:07.362Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T11:37:26.600Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T11:55:29.978Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:00:55.538Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:16:47.993Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:20:10.471Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:35:59.693Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:36:56.014Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:37:45.135Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:43:29.603Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:43:56.570Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:48:32.959Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:48:53.122Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:51:12.203Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:51:24.200Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:53:02.040Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:54:15.400Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:56:28.718Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:56:47.559Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T12:57:26.918Z",
+      "message": "Workflow Basic stop successfuly."
+    },
+    {
+      "date": "2025-02-06T12:57:55.245Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T13:02:46.175Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T13:13:22.682Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T14:10:52.159Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T14:22:01.158Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T15:18:21.922Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T15:57:31.718Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T16:00:53.310Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-06T19:18:27.614Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-09T20:41:09.982Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-09T20:46:30.400Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-10T07:20:53.047Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-10T10:11:28.480Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-10T10:50:15.487Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-10T11:20:49.390Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T16:57:11.669Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T17:11:10.114Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T17:17:25.183Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T20:27:04.022Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T20:46:37.686Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T21:54:47.432Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T22:03:59.264Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T22:11:13.176Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T22:30:01.113Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-12T22:32:24.666Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T09:54:13.285Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T12:50:49.115Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T13:00:24.088Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T13:14:02.789Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T13:20:09.022Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T13:28:38.807Z",
+      "message": "Workflow Basic start successfuly."
+    },
+    {
+      "date": "2025-02-13T14:05:21.424Z",
+      "message": "Workflow Basic start successfuly."
+    }
+  ],
+  "updatedAt": "2025-02-13T14:05:21.424Z",
+  "requestId": "3480c49b-8ef0-4dce-bbc7-6435fbaade99",
+  "id": "045efeea-eaaf-45e2-ace1-a1836f384d22"
+},{
+  "name": "ARABIA",
+  "state": "stopped",
+  "agents": [
+    {
+      "name": "Labeling 1st",
+      "type": "initial",
+      "submitTo": "Labeling 2nd",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "for free data",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Labeling_1st"
+      }
+    },
+    {
+      "name": "Labeling 2nd",
+      "type": "intermediate",
+      "submitTo": "Finalization",
+      "rejectTo": "Relabeling 1st",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Labeling_2nd"
+      }
+    },
+    {
+      "name": "Finalization",
+      "type": "final",
+      "rejectTo": "Relabeling 2nd",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-3-box-outline",
+        "class": "Basic_Finalizfnion"
+      }
+    },
+    {
+      "name": "Relabeling 1st",
+      "type": "intermediate",
+      "submitTo": "Labeling 2nd",
+      "assignPretendent": [
+        "allways"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Relabeling_1st"
+      }
+    },
+    {
+      "name": "Relabeling 2nd",
+      "type": "intermediate",
+      "submitTo": "Finalization",
+      "rejectTo": "Relabeling 1st",
+      "assignPretendent": [
+        "allways"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Relabeling_2nd"
+      }
+    }
+  ],
+  "id": "0a28ffb6-4960-4bbe-b9a9-1a859c2f3e45",
+  "WORKFLOW_TYPE": "ARABIA",
+  "log": [
+    {
+      "date": "2025-02-05T17:00:09.213Z",
+      "message": "Workflow ARABIA start successfuly."
+    },
+    {
+      "date": "2025-02-05T17:03:44.887Z",
+      "message": "Workflow ARABIA stop successfuly."
+    }
+  ],
+  "updatedAt": "2025-02-05T17:03:44.887Z",
+  "requestId": "3e68b587-9fdc-4c2f-9da2-db428a67e867"
+},{
+  "name": "TEST CROSS",
+  "state": "stopped",
+  "agents": [
+    {
+      "name": "Cross Stage 1",
+      "type": "initial",
+      "submitTo": "Cross Stage 2",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "for free data",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-1-box-outline",
+        "class": "Basic_Labeling_1st"
+      }
+    },
+    {
+      "name": "Cross Stage 2",
+      "type": "cross",
+      "assignPretendent": [
+        "according to schedule",
+        "according to quota"
+      ],
+      "canCreate": "allways",
+      "availableCommands": [
+        "open",
+        "rollback",
+        "sync",
+        "history",
+        "save",
+        "submit",
+        "reject"
+      ],
+      "decoration": {
+        "icon": "mdi-numeric-2-box-outline",
+        "class": "Basic_Labeling_2nd"
+      }
+    }
+  ],
+  "id": "d0173a6d-c8df-448b-aa49-bc07c4ba7b71",
+  "WORKFLOW_TYPE": "TEST CROSS",
+  "log": [
+  ],
+  "updatedAt": "2025-02-05T17:03:44.887Z",
+  "requestId": "3e68b587-9fdc-4c2f-9da2-db428a67e867"
 }]

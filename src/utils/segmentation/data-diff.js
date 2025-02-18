@@ -20,7 +20,9 @@ const checkedFields = [
     "Rhythm and Arrhythmias",
     "Systolic murmurs",
     "Diastolic murmurs",
-    "Other murmurs"
+    "Other murmurs",
+    // "Heart Sound Informativeness",
+    // "Lung Sound Informativeness"
     ]
 
 const checker = jsondiffpatch.create({

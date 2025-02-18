@@ -87,6 +87,7 @@ const Basic_Labeling_Agent = class extends Agent {
         this.uiPermissions = options.availableCommands
         this.canCreate = options.canCreate
         this.assignPretendent = options.assignPretendent
+        this.initialState = options.initialState || "start"
     }
 
     async create({ user, sourceKey, metadata, waitFor, release }) {
@@ -98,6 +99,7 @@ const Basic_Labeling_Agent = class extends Agent {
         await super.create({
             user,
             key: sourceKey,
+            initialState: this.initialState,
             metadata: extend({}, metadata, {
                 task: this.ALIAS,
                 status: "start",
@@ -445,10 +447,15 @@ const Intermediate_Task_Agent = class extends Basic_Labeling_Agent {
 const Final_Task_Agent = class extends Basic_Labeling_Agent {
 }
 
+const Cross_Labeling_Agent = require("./cross-labeling-agent")
+const Cross_Merge_Agent = require("./cross-merge-agent")
+
 const AgentFactory = {
     initial: Initial_Task_Agent,
     intermediate: Intermediate_Task_Agent,
-    final: Final_Task_Agent
+    final: Final_Task_Agent,
+    cross: Cross_Labeling_Agent,
+    merge: Cross_Merge_Agent
 }
 
 
