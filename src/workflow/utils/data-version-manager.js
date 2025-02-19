@@ -448,6 +448,7 @@ const VersionManager = class extends EventEmitter {
             data.commits = data.commits || []
             data.commits.push({
                 date: new Date(),
+                workflow: metadata.workflow,
                 log: newCommit.log
             })
 

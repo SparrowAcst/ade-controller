@@ -4,6 +4,7 @@ const moment = require("moment")
 const EMPLOYEE_MANAGER = require("./workflow/utils/employee-manager")
 const WORKFLOW = require("./workflow")
 const TRIGGERS = require("./workflow/utils/trigger-manager")
+const STAT = require("./workflow/utils/stat-manager")
 
 const normalizeSelector = selectorObject => {
     selectorObject = selectorObject || {}
@@ -379,7 +380,67 @@ const updateTrigger = async (req, res) => {
     }
 }
 
+const getPoolStat = async (req, res) => {
+    
+    try {
+        const options = req.body
+        let result = await STAT.getPoolStat(options)
+        res.send(result)
 
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const getDeferredStat = async (req, res) => {
+    
+    try {
+        const options = req.body
+        let result = await STAT.getDeferredStat(options)
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const getTaskStat = async (req, res) => {
+    
+    try {
+        const options = req.body
+        let result = await STAT.getTaskStat(options)
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+const getTaskEvents = async (req, res) => {
+    
+    try {
+        const options = req.body
+        let result = await STAT.getTaskEvents(options)
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+ 
 module.exports = {
     getTaskList,
     getMetadata,
@@ -398,5 +459,12 @@ module.exports = {
     getTriggers,
     startTrigger,
     stopTrigger,
-    updateTrigger
+    updateTrigger,
+
+    getPoolStat,
+    getDeferredStat,
+    getTaskStat,
+    getTaskEvents
+
+    
 }

@@ -326,6 +326,7 @@ const Cross_Labeling_Agent = class extends Agent {
             let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
 
             if (result && result.charts) {
+                result.charts = result.charts || {}
                 result.charts.segmentation = (result && result.segmentation.segments) ?
                     segmentationAnalysis.getSegmentationChart(result, inconsistency) :
                     undefined
@@ -516,11 +517,7 @@ const Cross_Labeling_Agent = class extends Agent {
             .reduce((a, b) => a || b, false) :
             false
 
-        console.log("dataDiff", ctx.dataDiff, hasDataInconsistency)
-        console.log("segDiff", segCtx.diff, hasSegmentationInconsistency)
-
         if (hasDataInconsistency || hasSegmentationInconsistency) {
-            // console.log(ctx.task.iteration, this.maxIteration)
 
             let mergedTask = await Task.merge({
                 user,
@@ -536,18 +533,12 @@ const Cross_Labeling_Agent = class extends Agent {
                 noSyncAltVersions: true
             })
 
-            console.log("mergedTask", mergedTask)
-
-
             if (ctx.task.iteration < this.maxIteration) {
-
-                console.log(ctx.altVersions.length)
-                console.log(ctx.altVersions.map(a => a.task.key))
 
                 let altVersions = ctx.altVersions.map(a => Key(a.task.key).taskState("reject").get())
 
                 for (let a of ctx.altVersions) {
-                    console.log(a)
+
                     let t = find(a.user.taskList, t => t.key == a.task.key)
                     t.key = Key(t.key).taskState("reject").get()
                     t.metadata = extend({}, t.metadata, {
@@ -555,20 +546,8 @@ const Cross_Labeling_Agent = class extends Agent {
                     })
                     t.altVersions = altVersions
 
-                    console.log("REJECT MERGE", a.user, t)
-
                     await updateEmployee(a.user)
 
-                    // let index = findIndex(t.altVersions, a => a == a.task.key)
-                    // t.altVersions[index] = t.key
-                    // console.log("TO ROLLBACK", a.task.key)
-                    // await this.rollback({
-                    //     user,
-                    //     sourceKey: a.task.key,
-                    //     metadata: extend({}, metadata, {
-                    //         comment: "Data is not consistent."
-                    //     })
-                    // })
                 }
 
             } else {
@@ -610,16 +589,12 @@ const Cross_Labeling_Agent = class extends Agent {
             noSyncAltVersions: true
         })
 
-        console.log("AUTO mergedTask", mergedTask)
-
-
         if (this.NEXT_AGENT) {
 
             console.log(`${this.ALIAS} create task with ${this.NEXT_AGENT}...`)
 
             await this.getAgent(this.NEXT_AGENT).lock({ user, sourceKey })
 
-            // result = 
             await this.getAgent(this.NEXT_AGENT).create({
                 user,
                 sourceKey: mergedTask.key,
@@ -635,7 +610,6 @@ const Cross_Labeling_Agent = class extends Agent {
         } else {
             console.log(`${this.ALIAS} commit changes...`)
 
-            // result = 
             await Task.commit({
                 user: mergedTask.user,
                 data: mergedData,
@@ -650,21 +624,16 @@ const Cross_Labeling_Agent = class extends Agent {
             })
         }
 
-        // return result
-
     }
 
     async reject(options) {
 
         console.log(`${this.ALIAS} reject...`)
-        console.log("options", options)
-        // let { user, sourceKey, metadata, altVersions } = options
-        console.log(this.PREV_AGENT)
-        console.log("----------------------------------")
+
         if (!this.PREV_AGENT) return
 
         let result = await this.getAgent(this.PREV_AGENT).create({
-            // user: options.user,
+
             sourceKey: options.sourceKey,
             altVersions: options.altVersions,
             metadata: extend({}, options.metadata, {
@@ -674,6 +643,7 @@ const Cross_Labeling_Agent = class extends Agent {
             }),
             waitFor: options.user,
             release: { user: options.user, sourceKey: options.sourceKey }
+
         })
 
         return result

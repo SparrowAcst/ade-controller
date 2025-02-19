@@ -225,7 +225,15 @@ module.exports = {
         router.post("/trigger/stop", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.stopTrigger])
         router.post("/trigger/update", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.updateTrigger])
 
+        // router.post("/stat/pool", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getPoolStat])
+        // router.post("/stat/deferred", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getDeferredStat])
+        // router.post("/stat/task", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskStat])
+        // router.post("/stat/events", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
 
+        router.post("/stat/pool", [  DBCache, lockCurrentDataset,  ade20TaskDashboard.getPoolStat])
+        router.post("/stat/deferred", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getDeferredStat])
+        router.post("/stat/task", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskStat])
+        router.post("/stat/events", [  DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

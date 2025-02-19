@@ -27,8 +27,6 @@ const checkPretendentCriteria = (agent, user) => {
     const employeeService = agent.getEmployeeService()
     const { Key } = employeeService
     user = (user.id) ? user : employeeService.employee(user)
-    // console.log("user", user)
-
 
     if (agent.assignPretendent.includes("according to schedule")) {
         if (!user.schedule) return false
@@ -49,8 +47,6 @@ const checkPretendentCriteria = (agent, user) => {
 
 
 const checkPossibilityOfCreating = async (agent, key) => {
-
-    // console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
 
     if (agent.canCreate == "allways") return true
 
@@ -173,6 +169,7 @@ const Cross_Merge_Agent = class extends Agent {
         if (altSegmentations.length > 0) {
             result.diff = segmentationAnalysis.getSegmentsDiff(segmentations)
             let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
+            result.charts = result.charts || {}
             result.charts.segmentation = segmentationAnalysis.getMultiSegmentationChart(segmentations, inconsistency)
         }
 
@@ -234,8 +231,6 @@ const Cross_Merge_Agent = class extends Agent {
                 decoration: this.decoration
             })
         })
-
-        // ctx = await this.read(result.key)    
 
         this.getAgent("Deferred").send({
             agent: this.ALIAS,
@@ -314,13 +309,6 @@ const Cross_Merge_Agent = class extends Agent {
                     decoration: this.decoration
                 }
             }
-
-            // {
-            //     user,
-            //     sourceKey,
-            //     data: ctx.data,
-            //     metadata: ctx.task.metadata 
-            // }
         )
 
     }

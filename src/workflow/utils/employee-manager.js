@@ -312,6 +312,7 @@ const commit = async options => {
 
     metadata = (metadata || {})
     metadata.status = "commit"
+    metadata.workflow = Key(sourceKey).workflowType()
 
     let task = await updateTask({
         user,

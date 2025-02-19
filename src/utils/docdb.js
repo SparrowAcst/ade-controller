@@ -484,6 +484,34 @@ const updateMany = async options => {
 }
 
 
+const countDocuments = async options => {
+
+    let client
+    try {
+
+        const conf = normalize(options.collection)
+        
+        client = await createClient(options)
+
+        const res = await client
+            .db(conf.dbName)
+            .collection(conf.collectionName)
+            .countDocuments()
+
+        return res
+
+    } catch (e) {
+
+        console.log(e.toString())
+        throw new Error(e + JSON.stringify(options, null, " "))
+
+    } finally {
+
+        if (client) client.close()
+
+    }   
+}
+
 
 module.exports = {
     aggregate,
@@ -503,5 +531,6 @@ module.exports = {
     insertMany: insertAll,
     insertOneIfNotExists,
     insertManyIfNotExists,
-    createIndex
+    createIndex,
+    countDocuments
 }
