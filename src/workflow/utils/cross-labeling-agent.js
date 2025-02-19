@@ -519,19 +519,7 @@ const Cross_Labeling_Agent = class extends Agent {
 
         if (hasDataInconsistency || hasSegmentationInconsistency) {
 
-            let mergedTask = await Task.merge({
-                user,
-                sourceKey: ctx.task.key,
-                metadata: {
-                    task: this.ALIAS,
-                    employee: user,
-                    status: "merge",
-                    decoration: this.decoration
-                },
-                data: ctx.data,
-                altVersions: ctx.altVersions,
-                noSyncAltVersions: true
-            })
+            
 
             if (ctx.task.iteration < this.maxIteration) {
 
@@ -552,6 +540,20 @@ const Cross_Labeling_Agent = class extends Agent {
 
             } else {
 
+                let mergedTask = await Task.merge({
+                    user,
+                    sourceKey: ctx.task.key,
+                    metadata: {
+                        task: this.ALIAS,
+                        employee: user,
+                        status: "merge",
+                        decoration: this.decoration
+                    },
+                    data: ctx.data,
+                    altVersions: ctx.altVersions,
+                    noSyncAltVersions: true
+                })
+                
                 ctx.task = mergedTask
                 await this.reject({
                     user,

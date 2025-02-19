@@ -444,7 +444,7 @@ const Cross_Merge_Agent = class extends Agent {
             "data": ((segmentationData) ? [segmentationData] : [])
                     .concat(options.altVersions.map((a, index) => ({
                         user: a.version.user +"-"+index,
-                        readonly: false,
+                        readonly: true,
                         segmentation: altSegmentations[index]
                     })))
         }

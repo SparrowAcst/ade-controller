@@ -118,14 +118,12 @@ const getTaskEvents = async ({ status, startDate }) => {
             },
         },
     ]
-    console.log(JSON.stringify(pipeline, null, " "))
     let result = await docdb.aggregate({
         db,
         collection: `ADE-SETTINGS.task-log`,
         pipeline
     })
 
-    console.log(result)
     return result
 }
 
