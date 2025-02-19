@@ -400,8 +400,8 @@ const release = async options => {
     })
 
     if(!task) {
-        console.log("RELESE: task not found: > ",user," > ",sourceKey )
-        // return
+        // console.log("RELESE: task not found: > ",user," > ",sourceKey )
+        return
     }
     
     task = task || {}

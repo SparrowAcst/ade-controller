@@ -182,6 +182,29 @@ const createCommand = agent => async (error, message, next) => {
 }
 
 
+const mergePolygons = polygonArray => {
+
+    let res = polygonArray[0].map(pa => {
+
+        let polygonSet = []
+        polygonArray.forEach(p => {
+            let f = find(p, p => p.name == pa.name)
+            if (f) {
+                polygonSet.push(f.shapes)
+            }
+
+        })
+
+        return {
+            name: pa.name,
+            shapes: segmentationAnalysis.mergePolygons(polygonSet)
+        }
+    })
+
+    return res
+}
+
+
 const Cross_Labeling_Agent = class extends Agent {
 
     constructor(options) {
@@ -569,14 +592,19 @@ const Cross_Labeling_Agent = class extends Agent {
 
         }
 
-
+//////////////////////////////////////////////////////////////////////////////////////////////////
+        
         let mergedData = segmentationAnalysis.mergeData(ctx.altVersions.map(a => a.data))
-        mergedData.segmentation = segmentationAnalysis.mergeSegments(
-                ctx.altVersions
+        
+        let parsedSegmentations = ctx.altVersions
                     .map(a => a.data.segmentation)
-                    .map(d => (d) ? segmentationAnalysis.parse(d).segments : [])
-        )
+                    .map(d => (d) ? segmentationAnalysis.parse(d) : []) 
+        
+        mergedData.segmentation = segmentationAnalysis.mergeSegments(parsedSegmentations.map(d => d.segments)) || {}
+        mergedData.segmentation.Murmur = segmentationAnalysis.polygons2v2(mergePolygons(parsedSegmentations.map(d => d.polygons)))
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+        
         let mergedTask = await Task.merge({
             user,
             sourceKey: ctx.task.key,
