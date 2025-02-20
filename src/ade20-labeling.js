@@ -16,7 +16,7 @@ const getRecordData = async (req, res) => {
         agentInstance = workflow.agent(description.taskType)
         
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
-        console.log(sourceKey)
+        // console.log(sourceKey)
         let result = await agentInstance.read(sourceKey)
         result.permissions = agentInstance.uiPermissions
         res.send(result)
@@ -181,8 +181,8 @@ const getSegmentationAnalysis = async (req, res) => {
         const description = Key(sourceKey).getDescription()
         
         agentAlias = agent || description.taskType 
-        console.log("sourceKey", sourceKey)
-        console.log("agentAlias", agentAlias)
+        // console.log("sourceKey", sourceKey)
+        // console.log("agentAlias", agentAlias)
         
         const workflow = await WORKFLOW()
         agentInstance = workflow.agent(agentAlias)
@@ -190,18 +190,6 @@ const getSegmentationAnalysis = async (req, res) => {
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
         
         let result = await agentInstance.getSegmentationAnalysis(Key(sourceKey).taskType(agentAlias).get())
-
-        // let data = await agentInstance.read(sourceKey)
-        
-        // let segmentation = data.data.segmentation
-        // segmentation = segmentation || data.data.aiSegmentation
-        
-        // let result
-        // if(segmentation){
-        //     result = segmentationAnalysis.getSegmentationAnalysis(segmentation)
-        // } else {
-        //     result = {}
-        // }
 
         res.send(result)
 
@@ -234,10 +222,11 @@ const getMetadata = async (req, res) => {
 const getEmployeeStats = async (req, res) => {
     
     const workflow = await WORKFLOW()
-    agentInstance = workflow.agent("Basic_Labeling_1st")
+    
+    // agentInstance = workflow.agent("Basic_Labeling_1st")
         
-    if(!agentInstance) throw new Error(`Agent ${agent} not found`)
-    let result = await agentInstance.getEmployeeStats(req.body)
+    // if(!agentInstance) throw new Error(`Agent ${agent} not found`)
+    let result = await workflow.getEmployeeStats(req.body)
     res.send(result)
 
 }

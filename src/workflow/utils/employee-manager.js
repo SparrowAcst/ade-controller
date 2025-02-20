@@ -247,6 +247,25 @@ const create = async options => {
     return task
 }
 
+const baseBranch = async options => {
+    
+    let { user, sourceKey, metadata } = options
+   
+    let key = Key(sourceKey)    
+
+    console.log(key.getDescription())
+
+    let versionManager = await VERSION_SERVICE.getManager({key: key.getDataKey()})
+
+    let version = versionManager.createBranch({
+        user,
+        source: { id: key.versionId() },
+        metadata
+    })
+
+    return version
+}
+
 const save = async options => {
 
     let { user, sourceKey, data, metadata, altVersions, iteration, noSyncAltVersions } = options
@@ -542,6 +561,7 @@ const init = async () => {
 
     const Task = {
         create,
+        baseBranch,
         save,
         submit,
         rollback,

@@ -102,7 +102,9 @@ const createCommand = agent => async (error, message, next) => {
 
         } = message.content
 
-        console.log("createCommand initialStatus", initialStatus)
+        // console.log("message.content", message.content)
+
+        // console.log("createCommand initialStatus", initialStatus)
         initialStatus = initialStatus || "start"
         // const agent = AGENTS[alias]
 
@@ -125,6 +127,25 @@ const createCommand = agent => async (error, message, next) => {
         })
 
         if (pretendents.length == agent.altCount) {
+
+            
+            if(Key(key).versionId() == "undefined"){
+            
+                // console.log("Key(key).versionId():", Key(key).versionId())
+            
+                let baseBranch = await Task.baseBranch({
+                    user: "ADE",
+                    sourceKey: Key(key).taskState(initialStatus).get(),
+                    metadata: {
+                        task: agent.alias,
+                        status: "baseBranch",
+                        decoration: agent.decoration
+                    }
+                })
+                key = Key(key).versionId(baseBranch.id).get()
+            
+            }
+
 
             let altVersions = []
             for (let pretendent of pretendents) {
@@ -233,7 +254,7 @@ const Cross_Labeling_Agent = class extends Agent {
         this.altCount = options.altCount || 2
         this.maxIteration = options.maxIteration || 2
         this.initialStatus = options.initialStatus || "start"
-        console.log("Cross_Labeling_Agent", this)
+        // console.log("Cross_Labeling_Agent", this)
     }
 
     async start() {
@@ -279,7 +300,9 @@ const Cross_Labeling_Agent = class extends Agent {
 
         console.log(`${this.ALIAS} create...`, this.initialStatus)
 
-        const { Task } = this.getEmployeeService()
+        const { Task, Key } = this.getEmployeeService()
+
+        // console.log(Key(sourceKey).getDescription())
 
         await super.create({
             user,
@@ -626,7 +649,7 @@ const Cross_Labeling_Agent = class extends Agent {
             await this.getAgent(this.NEXT_AGENT).lock({ user, sourceKey })
 
             await this.getAgent(this.NEXT_AGENT).create({
-                user,
+                // user,
                 sourceKey: mergedTask.key,
                 altVersions: ctx.altVersions,
                 metadata: extend({}, mergedTask.metadata, {

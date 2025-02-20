@@ -45,21 +45,23 @@ const state = agent => {
 }
 
 module.exports = data => {
+  // console.log(data)
   let text = plantUml(
     package(
       data.name,
       flatten(
         data.agents.map( agent => [
           link(agent.name, agent.submitTo, "-->", "submit"),
-          (agent.rejectTo) ? link(agent.name, agent.rejectTo, "-u->", "reject") : ""
+          (agent.rejectTo) ? link(agent.name, agent.rejectTo, "-u->", "reject") : "",
+          (agent.initial) ? link("", agent.name, "-->", "emit") : "",
         ])
       ).concat(
         flatten(
           data.agents.map( agent => state(agent))
         )
       ).join("\n")  
-    )
+    ) + ((data.description) ? `\n${data.name}: ${JSON.stringify(data.description)}` : "")
   )
-  console.log(text)
+  // console.log(text)
   return getUrl(text)  
 }

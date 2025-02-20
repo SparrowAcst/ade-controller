@@ -377,40 +377,7 @@ const VersionManager = class extends EventEmitter {
             throw e
 
         }
-        // try {
 
-        //     let { source } = options
-        //     let self = this.getVersion(source.id)
-
-        //     if (self.lockRollback) return
-        //     if (!self) throw new Error(`Data Version Manager #rollbackSubmit: source ${source.id || source} not found`)
-
-        //     if (self.type != "submit") throw new Error(`Data Version Manager #rollbackSubmit: source ${source.id || source} is not submit`)
-
-        //     let parent = this.getVersion(first(self.prev).id)
-
-        //     parent.head = true
-        //     parent.readonly = false
-        //     delete parent.submit
-        //     remove(this.versions, d => d.id == self.id)
-
-        //     this.emit("store", {
-        //         collection: `${this.schema}.${this.savepointCollection}`,
-        //         data: [parent]
-        //     })
-
-        //     this.emit("delete", {
-        //         collection: `${this.schema}.${this.savepointCollection}`,
-        //         data: [self]
-        //     })
-
-        //     return parent
-
-        // } catch (e) {
-
-        //     throw e
-
-        // }
     }
 
     createCommit(options = {}) {
@@ -500,7 +467,7 @@ const VersionManager = class extends EventEmitter {
             let { user, altVersions, data, metadata } = options
 
             let parents = altVersions.map(s => this.getVersion(Key(s).versionId()))
-            console.log(parents)
+            // console.log(parents)
 
             if (!parents) throw new Error(`Data Version Manager #merge: source list is empty`)
 
@@ -626,7 +593,7 @@ const initVersions = async settings => {
 
     const id = uuid()
 
-    console.log("DATAVIEW", dataCollection)
+    // console.log("DATAVIEW", dataCollection)
 
     let initialCommit = {
         id,
@@ -898,148 +865,3 @@ module.exports = options => {
 
 
 
-
-// const test = async () => {
-
-//     const SCHEMA = "strazhesko-part-1"
-//     const DATA_COLLECTION = "labels"
-//     const SAVEPOINTS_COLLECTION = "savepoints"
-//     const DATA_ID = "8f9044eb-c1b5-466b-99f9-dd287e623830"
-
-//     const VERSION_SERVICE = module.exports({
-//         dataView: {
-//             labels: d => ({ id: d.id })
-//         }
-//     })
-
-
-//     const consumer = await VERSION_SERVICE.getConsumer()
-//     const publisher = await VERSION_SERVICE.getPublisher()
-
-//     let manager = await VERSION_SERVICE.getManager({
-//         schema: SCHEMA,
-//         dataCollection: DATA_COLLECTION,
-//         savepointCollection: SAVEPOINTS_COLLECTION,
-//         dataId: DATA_ID
-//     })
-
-
-// /////////////////////////////////////////////////////////////////////////////////////
-
-//     // let version = manager.getVersion("1e0afbea-cb48-4822-9394-dde08c0e2eb6")
-
-//     // let hist = manager.getHistory({
-//     //     version,
-//     //     stopAt: v => v.type == "merge",
-//     //     maxDepth: 2
-//     // })
-
-//     // console.log(hist)
-
-
-//     // let chart = manager.getChart({
-//     //     formatComment: d => last(d.metadata).metadata.comment || ""
-//     // })
-
-//     // console.log(JSON.stringify(chart, null, " "))
-
-//     // await consumer.close()
-//     // await publisher.close()
-
-//     // return
-
-// //////////////////////////////////////////////////////////////////////////////////////
-
-//     let initial = manager.select()[0]
-
-//     let branch1 = manager.createBranch({
-//         source: initial,
-//         user: "Andrey Boldak",
-//         metadata: {
-//             comment: "Create branch 1"
-//         }
-//     })
-
-//     let branch2 = manager.createBranch({
-//         source: initial,
-//         user: "Vasia",
-//         metadata: {
-//             comment: "Create branch 2"
-//         }
-//     })
-
-//     let data = manager.getData(branch1.id)
-//     data.UPD = true
-
-//     let savePoint1 = manager.createSavePoint({
-//         source: branch1,
-//         user: "Andrey Boldak",
-//         data,
-//         metadata: {
-//             comment: "Add savepoint"
-//         }
-//     })
-
-//     data = manager.getData(branch2.id)
-//     data.UPD = false
-
-//     let savePoint2 = manager.createSavePoint({
-//         source: branch2,
-//         user: "Vasia",
-//         data,
-//         metadata: {
-//             comment: "Add another savepoint"
-//         }
-//     })
-
-
-//     let merge = manager.createMerge({
-//         source:[savePoint1, savePoint2],
-//         user: "Andrey Boldak",
-//         data,
-//         metadata:{
-//             comment: "merge data"
-//         },
-
-//     })
-
-//     let submit = manager.createSubmit({
-//         source: merge,
-//         user: "Andrey Boldak",
-//         data,
-//         metadata: {
-//             comment: "SUBMIT"
-//         }
-//     })
-
-//     // manager.rollbackSubmit({
-//     //     source: submit
-//     // })
-
-//     let commit = manager.createCommit({
-//         source: submit,
-//         user: "Andrey Boldak",
-//         data,
-//         metadata: {
-//             comment: "Commit task"
-//         }
-//     })
-
-
-
-//     let chart = manager.getChart({
-//         formatComment: d => last(d.metadata).metadata.comment || ""
-//     })
-
-//     console.log(JSON.stringify(chart, null, " "))
-
-//     setTimeout(async () => {
-//         await consumer.close()
-//         await publisher.close()
-//     }, 10000)
-
-
-// }
-
-
-// test()

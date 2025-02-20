@@ -200,8 +200,8 @@ const getEmployeeProfile = async (req, res) => {
         let { user } = req.body
 
         const workflow = await WORKFLOW()
-        agentInstance = workflow.agent("Basic_Labeling_1st")
-        if (!agentInstance) throw new Error(`Agent ${agent} not found`)
+        // agentInstance = workflow.agent("Basic_Labeling_1st")
+        // if (!agentInstance) throw new Error(`Agent ${agent} not found`)
 
 
         const employeeManager = await EMPLOYEE_MANAGER()
@@ -216,7 +216,7 @@ const getEmployeeProfile = async (req, res) => {
 
         let f = find(portalUsers, pu => emp.email.includes(pu.email))
 
-        let statistics = await agentInstance.getEmployeeStats({ user: [user], intervals: ["hour24", "day7", "month1", "year1"] })
+        let statistics = await workflow.getEmployeeStats({ user: [user], intervals: ["hour24", "day7", "month1", "year1"] })
 
         res.send({
             user: {

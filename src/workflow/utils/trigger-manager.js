@@ -44,7 +44,19 @@ const normalizeSelector = selector => {
 
 
 const select = async selector => {
-    const pipeline = [{ $project: { _id: 0 } }]
+    const pipeline = [
+        {
+            $match:{
+                disabled: {
+                    $ne: true
+                }
+            }
+        },{ 
+            $project: { 
+                _id: 0 
+            } 
+        }
+    ]
     let triggers = await docdb.aggregate({
         db,
         collection: "ADE-SETTINGS.triggers",

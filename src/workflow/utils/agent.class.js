@@ -403,6 +403,14 @@ const init = async () => {
     }
 }
 
+const getEmployeeStats = async options => {
+    if (!EMPOLOYEE_SERVICE) {
+        EMPOLOYEE_SERVICE = await EmployeeManager()
+    }
+    let result = await EMPOLOYEE_SERVICE.getEmployeeStats(options)
+    return result   
+}
+
 module.exports = {
     agent: alias => AGENTS[alias],
     register: (alias, instance) => {
@@ -411,6 +419,7 @@ module.exports = {
         AGENTS[alias] = instance
     },
     Agent,
-    init
+    init,
+    getEmployeeStats
 }
 

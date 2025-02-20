@@ -46,7 +46,7 @@ const checkPretendentCriteria = (agent, user) => {
 
 const checkPossibilityOfCreating = async (agent, key) => {
     
-    console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
+    // console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
 
     if(agent.canCreate == "allways") return true
 

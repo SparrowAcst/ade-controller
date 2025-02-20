@@ -355,15 +355,15 @@ const getSegmentationData = async (req, res) => {
 const updateSegmentationData = async (req, res) => {
 
 	let sourceKey = req.query.requestId || req.params.requestId || (req.body && req.body.requestId)
-    console.log(req.query.requestId || req.params.requestId)
-    console.log(sourceKey)
+    // console.log(req.query.requestId || req.params.requestId)
+    // console.log(sourceKey)
     
     const description = Key(sourceKey).getDescription()
     const workflow = await WORKFLOW()
     agentInstance = workflow.agent(description.taskType)
     if(!agentInstance) throw new Error(`Agent ${agent} not found`)
     
-   console.log("req.body", req.body) 	
+   // console.log("req.body", req.body) 	
 
     await agentInstance.updateSegmentationData({
     	sourceKey,
