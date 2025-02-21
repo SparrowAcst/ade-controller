@@ -35,10 +35,23 @@ const FEEDBACK_OPTIONS = normalize({
 })
 
 
+const NO_CREATE_OPTIONS = normalize({
+    exchange: {
+        name: 'no_create_task_exchange',
+        options: {
+            durable: true,
+            persistent: true
+        }
+    }
+})
+
+
 const TIME_INTERVAL = 1 * 15 * 1000 // 10 min
 
 let consumer
 let feedbackPublisher
+let noCreatePublisher
+
 
 const processMessage = async (err, message, next) => {
 
@@ -58,14 +71,20 @@ const processMessage = async (err, message, next) => {
 
         if (ctx.agent) {
             const respondent = agent(ctx.agent)
-            if(respondent.state == "available"){
-                // console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
-                await respondent.commit(ctx.content)
+            if(respondent){
+                if(respondent.state == "available"){
+                    // console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
+                    await respondent.commit(ctx.content)
+                } else {
+                    // console.log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
+                    let self = agent("Deferred")
+                    await self.feedback(ctx)
+                }
             } else {
-                // console.log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
+                console.log(`Deffered: agent ${ctx.agent} not found`)
                 let self = agent("Deferred")
-                await self.feedback(ctx)
-            }    
+                await self.sendToNoCreate(extend({}, ctx, {reason:`Deffered: agent ${ctx.agent} not found`}))
+            }        
         }
 
         next()
@@ -97,6 +116,10 @@ const Deferred_Agent = class {
         feedbackPublisher = await AmqpManager.createPublisher(FEEDBACK_OPTIONS)
         feedbackPublisher.use(Middlewares.Json.stringify)
 
+        noCreatePublisher = await AmqpManager.createPublisher(NO_CREATE_OPTIONS)
+        noCreatePublisher.use(Middlewares.Json.stringify)
+
+
         await consumer
             .use(Middlewares.Json.parse)
 
@@ -124,6 +147,14 @@ const Deferred_Agent = class {
         }, TIME_INTERVAL)
     }
 
+
+    async sendToNoCreate(message) {
+        message.publisher = this.FEEDBACK_OPTIONS
+        message.date = new Date()
+        message.requestId = uuid()
+        console.log("Send to No Created Task Storage:", message.data.key)
+        this.noCreatePublisher.send(message)
+    }
 }
 
 

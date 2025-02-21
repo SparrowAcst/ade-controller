@@ -502,6 +502,7 @@ const Cross_Labeling_Agent = class extends Agent {
         const { Task, employee } = employeeService
 
         const emp = employee(user)
+        
         let f = find(emp.taskList || [], t => t.key == sourceKey)
         if (!f) {
             return
@@ -512,7 +513,7 @@ const Cross_Labeling_Agent = class extends Agent {
         if (ctx.task && ctx.task.lock) return
 
         await this.commit({
-            user,
+            user: user,
             data: ctx.data,
             sourceKey,
             altVersions: ctx.task.altVersions,
@@ -528,7 +529,7 @@ const Cross_Labeling_Agent = class extends Agent {
 
     async commit({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} commit...`, metadata)
+        console.log(`${this.ALIAS} commit...`)
 
         const employeeService = this.getEmployeeService()
         const { Task, Key, updateEmployee } = employeeService

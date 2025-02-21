@@ -57,6 +57,9 @@ const priorities = selector => {
 
 const updateEmployee = async emp => {
 
+    // console.log("updateEmployee", emp)
+    if(!emp || !emp.namedAs) return
+
     EMPLOYEE_CACHE.set(emp.namedAs, emp)
     
     publisher = await getPublisher()
@@ -97,14 +100,14 @@ const syncAltVersions = async (sourceKey, targetKey) => {
             return alts.includes(sourceKey)
         })
         
-        console.log(emps.map(e => e.namedAs))
+        // console.log(emps.map(e => e.namedAs))
 
         for(let emp of emps){
             let t = find(emp.taskList, t => (t.altVersions || []).includes(sourceKey))
-            console.log(emp, t.key)
+            // console.log(emp, t.key)
             if(!t) continue
             let index = findIndex((t.altVersions || []), k => k == sourceKey)
-            console.log("index", index)
+            // console.log("index", index)
             if(index >= 0) {
                 t.altVersions[index] = targetKey
                 publisher.send({
@@ -115,8 +118,6 @@ const syncAltVersions = async (sourceKey, targetKey) => {
             }
 
         }
-
-        
 
     } catch(e) {
         console.log(e.toString(), e.stack)
@@ -142,8 +143,14 @@ const updateMetadata = async options => {
 
     let {sourceKey, update } = options
     let ctx = await context(sourceKey)
-    ctx.task.metadata = extend({}, ctx.task.metadata, update)
-    await updateEmployee(ctx.user)
+    if(ctx && ctx.task){
+        ctx.task.metadata = ctx.task.metadata || {}
+        ctx.task.metadata = extend({}, ctx.task.metadata, update)
+        await updateEmployee(ctx.user)    
+    } else {
+        console.log(`Employee Manager: No context for ${sourceKey}`)
+    }
+    
     
 }
 
@@ -253,7 +260,7 @@ const baseBranch = async options => {
    
     let key = Key(sourceKey)    
 
-    console.log(key.getDescription())
+    // console.log(key.getDescription())
 
     let versionManager = await VERSION_SERVICE.getManager({key: key.getDataKey()})
 
@@ -357,7 +364,7 @@ const merge = async options => {
     metadata = (metadata || {})
     metadata.status = "merge"
 
-    console.log(altVersions)
+    // console.log(altVersions)
 
     let task = await updateTask({
         user,
