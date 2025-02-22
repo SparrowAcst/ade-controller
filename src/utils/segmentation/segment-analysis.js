@@ -271,6 +271,9 @@ const parse = segmentation => {
 
 
 const polygons2v2 = polygons => {
+    
+    if(!polygons) return []
+
     let res = flatten(
         polygons.map( p => {
             return p.shapes.map( s => {

@@ -37,7 +37,7 @@ const checkPretendentCriteria = (agent, user) => {
     if (agent.assignPretendent.includes("according to quota")) {
         user.taskList = user.taskList || []
         return user.taskList.filter(t => {
-            return Key(t.key).taskState() != "submit"
+            return Key(t.key).taskState() != "submit" && t.disabled != true
         }).length <= agent.TASK_QUOTE
     }
 

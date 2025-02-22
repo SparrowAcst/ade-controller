@@ -225,8 +225,7 @@ const Agent = class {
         // console.log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
         // console.log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
 
-
-
+        await this.setTaskDisabled(false)
 
         this.consumer = await AmqpManager.createConsumer(this.CONSUMER_OPTIONS)
 
@@ -256,12 +255,34 @@ const Agent = class {
 
     }
 
+    async setTaskDisabled(value){
+
+        const {Key, employes, updateEmployee} = this.getEmployeeService()
+
+        const employesList = employes()
+        console.log(this.ALIAS, "set task disabled: ", value)
+        for(let emp of employesList){
+            (emp.taskList || []).forEach( task => {
+                if(Key(task.key).taskType() == this.ALIAS){
+                    console.log(emp.namedAs,">", task.key, "> disabled: ", value)
+                    task.disabled = value
+                }
+            })
+            await updateEmployee(emp)
+        }
+    }
+
     async stop() {
-        await this.consumer.close()
-        await this.feedbackPublisher.close()
-        await this.schedulerPublisher.close()
-        await this.noCreatePublisher.close()
+        
+        if(this.consumer){
+            await this.consumer.close()
+            await this.feedbackPublisher.close()
+            await this.schedulerPublisher.close()
+            await this.noCreatePublisher.close()
+        }
+        
         this.state = "stopped"
+        await this.setTaskDisabled(true)
 
     }
 

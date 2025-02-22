@@ -39,7 +39,7 @@ const checkPretendentCriteria = (agent, user) => {
     if (agent.assignPretendent.includes("according to quota")) {
         user.taskList = user.taskList || []
         return user.taskList.filter(t => {
-            return Key(t.key).taskState() != "submit"
+            return Key(t.key).taskState() != "submit" && t.disabled != true
         }).length <= agent.TASK_QUOTE
     }
 
@@ -73,8 +73,22 @@ const findPretendents = async (options, agent) => {
 
     altCount = agent.altCount
     const { employes, Task, Key } = agent.getEmployeeService()
+    
+    let pretendents = []
+    let reqCount = 0
 
-    pretendents = sampleSize(employes(user => agent.pretendentCriteria(user)), altCount)
+    if(agent.requiredExperts){
+        reqCount = agent.requiredExperts.length
+        pretendents = employes(user => {
+            console.log(user.namedAs, agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user))
+            return agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user)
+        })
+    }
+
+    console.log("Required experts:", agent.requiredExperts, pretendents.length)
+
+    pretendents = pretendents.concat(sampleSize(employes(user => !agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user)), altCount - reqCount))    
+
     if (pretendents.length == altCount) {
         return pretendents //.map(p => p.namedAs)
     }
@@ -203,6 +217,49 @@ const createCommand = agent => async (error, message, next) => {
 }
 
 
+const hasDataInconsistency = dataDiff => dataDiff.length > 0
+
+const hasSegmentationInconsistency = diff => {
+    return (diff) ? diff
+            .map(diff => keys(diff)
+                .map(key => diff[key].length > 0)
+                .reduce((a, b) => a || b, false)
+            )
+            .reduce((a, b) => a || b, false) : false
+}
+
+const hasPolygonsInconsistency = diff => diff.length > 0
+
+
+const getPolygonsInconsistency = polygonArray => {
+
+    let result = []
+
+    polygonArray[0].forEach( pa => {
+
+        let polygonSet = []
+        polygonArray.forEach(p => {
+            let f = find(p, p => p.name == pa.name)
+            if (f) {
+                polygonSet.push(f.shapes)
+            }
+        })
+        result.push(
+            segmentationAnalysis
+            .getPolygonsDiff(polygonSet)
+            // .map(d => !!d)
+            // .reduce((a, b) => a || b, false)
+        )
+
+    })
+
+    // result = result.reduce((a, b) => a || b, false)
+
+    return result
+
+}
+
+
 const mergePolygons = polygonArray => {
 
     let res = polygonArray[0].map(pa => {
@@ -254,6 +311,7 @@ const Cross_Labeling_Agent = class extends Agent {
         this.altCount = options.altCount || 2
         this.maxIteration = options.maxIteration || 2
         this.initialStatus = options.initialStatus || "start"
+        this.requiredExperts = options.requiredExperts || []
         // console.log("Cross_Labeling_Agent", this)
     }
 
@@ -267,6 +325,8 @@ const Cross_Labeling_Agent = class extends Agent {
         // console.log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
         // console.log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
         // console.log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
+
+        this.setTaskDisabled(false)
 
         this.consumer = await AmqpManager.createConsumer(this.CONSUMER_OPTIONS)
 
@@ -363,12 +423,14 @@ const Cross_Labeling_Agent = class extends Agent {
 
         let altSegmentations = data.altVersions
             .map(a => a.data.segmentation)
-            .map(d => (d) ? segmentationAnalysis.parse(d).segments : [])
+            .map(d => (d) ? segmentationAnalysis.parse(d) : [])
 
+        // console.log("PLYGONNS",altSegmentations.map( s => s.polygons))
 
         if (altSegmentations.length > 0) {
-            result.diff = segmentationAnalysis.getSegmentsDiff(altSegmentations)
-
+            result.diff = segmentationAnalysis.getSegmentsDiff(altSegmentations.map( s => s.segments))
+            result.polygonsDiff = getPolygonsInconsistency(altSegmentations.map( s => s.polygons))//segmentationAnalysis.getPolygonsDiff(altSegmentations.map( s => s.polygons))
+            // console.log("result.polygonsDiff", result.polygonsDiff)
             let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
 
             if (result && result.charts) {
@@ -380,6 +442,15 @@ const Cross_Labeling_Agent = class extends Agent {
         }
 
         return result
+    }
+
+    async hasInconsistency(sourceKey){
+        let ctx = await this.read(sourceKey)
+        let segCtx = await this.getSegmentationAnalysis(sourceKey)
+        let di = hasDataInconsistency(ctx.dataDiff)
+        let si = hasSegmentationInconsistency(segCtx.diff)
+        let pi = hasPolygonsInconsistency(segCtx.polygonsDiff)
+        return di || si || pi
     }
 
     async save({ user, sourceKey, data, metadata }) {
@@ -534,9 +605,9 @@ const Cross_Labeling_Agent = class extends Agent {
         const employeeService = this.getEmployeeService()
         const { Task, Key, updateEmployee } = employeeService
 
-
+        
         let ctx = await this.read(sourceKey)
-        let segCtx = await this.getSegmentationAnalysis(sourceKey)
+        // let segCtx = await this.getSegmentationAnalysis(sourceKey)
 
         // console.log(ctx.altVersions)
 
@@ -553,20 +624,22 @@ const Cross_Labeling_Agent = class extends Agent {
             return
         }
 
-        let hasDataInconsistency = ctx.dataDiff.length > 0
+        // let hasDataInconsistency = ctx.dataDiff.length > 0
 
-        let hasSegmentationInconsistency = (segCtx.diff) ?
-            segCtx.diff
-            .map(diff => keys(diff)
-                .map(key => diff[key].length > 0)
-                .reduce((a, b) => a || b, false)
-            )
-            .reduce((a, b) => a || b, false) :
-            false
+        // let hasSegmentationInconsistency = (segCtx.diff) ?
+        //     segCtx.diff
+        //     .map(diff => keys(diff)
+        //         .map(key => diff[key].length > 0)
+        //         .reduce((a, b) => a || b, false)
+        //     )
+        //     .reduce((a, b) => a || b, false) :
+        //     false
 
-        if (hasDataInconsistency || hasSegmentationInconsistency) {
 
-            
+        // if (hasDataInconsistency || hasSegmentationInconsistency) {
+        const incst =await this.hasInconsistency(sourceKey)
+   
+        if(incst){            
 
             if (ctx.task.iteration < this.maxIteration) {
 

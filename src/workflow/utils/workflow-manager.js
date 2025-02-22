@@ -161,18 +161,22 @@ const init = async () => {
         AGENTS = {}
         WORKFLOWS = {}
 
-        let deferredAgent = new Deferred_Agent_Class()
-        AGENTS["Deffered"] = deferredAgent
-        console.log("Start: ", deferredAgent.ALIAS)
-        await deferredAgent.start()
-
+        
         for (const workflow of workflows) {
             workflowAlias = workflow.name.split(" ").join("_")
             WORKFLOWS[workflowAlias] = new Workflow(workflow)
             if (workflow.state == "available") {
                 await WORKFLOWS[workflowAlias].start()
+            } else {
+                await WORKFLOWS[workflowAlias].stop()
             }
         }
+
+
+        let deferredAgent = new Deferred_Agent_Class()
+        AGENTS["Deffered"] = deferredAgent
+        console.log("Start: ", deferredAgent.ALIAS)
+        await deferredAgent.start()
 
         console.log(`WORKFLOWS:\n${selectWorkflow().map(w => w.options.WORKFLOW_TYPE + ": " + w.options.state).join("\n")} `)
         console.log(`AGENTS:\n${select().map(a => a.ALIAS).join("\n")}`)

@@ -110,30 +110,30 @@ const Deferred_Agent = class {
 
         // console.log("CONSUMER_OPTIONS", CONSUMER_OPTIONS)
         // console.log("FEEDBACK_OPTIONS", FEEDBACK_OPTIONS)
-        
-        consumer = await AmqpManager.createConsumer(CONSUMER_OPTIONS)
+        if(!consumer){
+            consumer = await AmqpManager.createConsumer(CONSUMER_OPTIONS)
 
-        feedbackPublisher = await AmqpManager.createPublisher(FEEDBACK_OPTIONS)
-        feedbackPublisher.use(Middlewares.Json.stringify)
+            feedbackPublisher = await AmqpManager.createPublisher(FEEDBACK_OPTIONS)
+            feedbackPublisher.use(Middlewares.Json.stringify)
 
-        noCreatePublisher = await AmqpManager.createPublisher(NO_CREATE_OPTIONS)
-        noCreatePublisher.use(Middlewares.Json.stringify)
+            noCreatePublisher = await AmqpManager.createPublisher(NO_CREATE_OPTIONS)
+            noCreatePublisher.use(Middlewares.Json.stringify)
 
 
-        await consumer
-            .use(Middlewares.Json.parse)
+            await consumer
+                .use(Middlewares.Json.parse)
 
-            .use(processMessage)
+                .use(processMessage)
 
-            .use(Middlewares.Error.Log)
-            .use(Middlewares.Error.BreakChain)
+                .use(Middlewares.Error.Log)
+                .use(Middlewares.Error.BreakChain)
 
-            .use((err, msg, next) => {
-                msg.ack()
-            })
+                .use((err, msg, next) => {
+                    msg.ack()
+                })
 
-            .start()
-
+                .start()
+        }        
         
     }
 
@@ -142,6 +142,9 @@ const Deferred_Agent = class {
     }
 
     async feedback(message) {
+         if(!feedbackPublisher){
+            await this.start()
+        }
         setTimeout(() => {
             feedbackPublisher.send(message)
         }, TIME_INTERVAL)
@@ -152,8 +155,11 @@ const Deferred_Agent = class {
         message.publisher = this.FEEDBACK_OPTIONS
         message.date = new Date()
         message.requestId = uuid()
-        console.log("Send to No Created Task Storage:", message.data.key)
-        this.noCreatePublisher.send(message)
+        if(!noCreatePublisher){
+            await this.start()
+        }
+        console.log("Send to No Created Task Storage:", message)
+        noCreatePublisher.send(message)
     }
 }
 
