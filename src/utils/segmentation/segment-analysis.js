@@ -459,10 +459,11 @@ const getSegmentationChart = (sa, nonConsistencyIntervals) => {
 
 
 
-const getMultiSegmentationChart = (segmentations, nonConsistencyIntervals) => {
+const getMultiSegmentationChart = (users, segmentations, nonConsistencyIntervals) => {
 
     nonConsistencyIntervals = nonConsistencyIntervals || []
 
+    users = (isArray(users || [])) ? users : [users]
     segmentations = (isArray(segmentations || [])) ? segmentations : [segmentations]
 
     let pool = []
@@ -476,6 +477,7 @@ const getMultiSegmentationChart = (segmentations, nonConsistencyIntervals) => {
 
         segments = segments.map(s => {
             s.name = s.type
+            s.user = users[index]
             s.itemStyle = {
                 normal: {
                     color: (segmentTypes[s.type]) ? segmentTypes[s.type].color || "black" : "black",
@@ -508,7 +510,7 @@ const getMultiSegmentationChart = (segmentations, nonConsistencyIntervals) => {
             formatter: `params => {
                 return (params.componentType == 'markArea') 
                     ? 'zone of non-conformity started at ' + params.data.coord[0][0] + ' s'
-                    : params.marker + params.name + ': started at ' + params.value[1] + ' s'
+                    : '<div style="font-size:10px;"><div style="font-weight: bold">' + params.data.user + '</div><div>' + params.marker + params.name + ': started at ' + params.value[1] + 's</div></div>'
             }`
             // `params => {
             //     return params.marker + params.name + ': started at ' + params.value[1] + ' s';

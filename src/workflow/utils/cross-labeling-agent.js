@@ -583,6 +583,11 @@ const Cross_Labeling_Agent = class extends Agent {
 
         if (ctx.task && ctx.task.lock) return
 
+        this.getAgent("Deferred").send({
+            agent: this.ALIAS,
+            ignore: sourceKey
+        })   
+    
         await this.commit({
             user: user,
             data: ctx.data,

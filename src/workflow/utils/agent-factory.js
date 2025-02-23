@@ -251,6 +251,12 @@ const Basic_Labeling_Agent = class extends Agent {
         
         if(ctx.task && ctx.task.lock) return 
         
+        
+        this.getAgent("Deferred").send({
+            agent: this.ALIAS,
+            ignore: result.key
+        })   
+
         await this.commit(
             {
                 user,

@@ -21,6 +21,7 @@ const state = agent => {
   
   const fields = {
     // "type": "Type", 
+    "requiredExperts": "Expert participation required",
     "assignPretendent": "Assign to expert",
     "canCreate": "Creating a task is possible",
     "initialStatus": "Initial task state",

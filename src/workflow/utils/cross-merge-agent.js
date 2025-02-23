@@ -170,7 +170,8 @@ const Cross_Merge_Agent = class extends Agent {
             result.diff = segmentationAnalysis.getSegmentsDiff(segmentations)
             let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
             result.charts = result.charts || {}
-            result.charts.segmentation = segmentationAnalysis.getMultiSegmentationChart(segmentations, inconsistency)
+            let users = ["me"].concat(data.altVersions.map(d => d.version.user || ""))
+            result.charts.segmentation = segmentationAnalysis.getMultiSegmentationChart(users, segmentations, inconsistency)
         }
 
 
@@ -298,6 +299,11 @@ const Cross_Merge_Agent = class extends Agent {
 
         if (ctx.task && ctx.task.lock) return
 
+        this.getAgent("Deferred").send({
+            agent: this.ALIAS,
+            ignore: sourceKey
+        })   
+        
         await this.commit({
                 user,
                 data: ctx.data,

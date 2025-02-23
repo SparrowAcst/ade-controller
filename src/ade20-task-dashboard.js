@@ -63,8 +63,8 @@ const getMetadata = async (req, res) => {
     try {
         const workflow = await WORKFLOW()
         const agents = workflow.select()
-        const workflowType = uniqBy(agents.map(agent => agent.WORKFLOW_TYPE))
-        const taskType = uniqBy(agents.map(agent => agent.ALIAS)).filter(d => d !== "Deffered")
+        const workflowType = uniqBy(agents.map(agent => agent.WORKFLOW_TYPE)).filter(d => d)
+        const taskType = uniqBy(agents.map(agent => agent.ALIAS)).filter(d => d && d !== "Deferred" )
         res.send({
             workflowType,
             taskType

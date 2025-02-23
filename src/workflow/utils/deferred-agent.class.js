@@ -1,5 +1,5 @@
 const uuid = require("uuid").v4
-const { extend, isArray, sample, isFunction, keys } = require("lodash")
+const { extend, isArray, sample, isFunction, keys, find, remove } = require("lodash")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const { agent, register } = require("./agent.class")
 const config = require("../../../.config")
@@ -53,11 +53,35 @@ let feedbackPublisher
 let noCreatePublisher
 
 
+
+let TASK_BLACK_LIST = []
+
 const processMessage = async (err, message, next) => {
 
     try {
 
         let ctx = message.content
+
+        // console.log("DEFERRED", message.content)
+
+        if(ctx.ignore){
+            if(!find(TASK_BLACK_LIST, t => t == ctx.ignore)){
+                console.log(`Deffered: black list add ${ctx.ignore}`)
+                TASK_BLACK_LIST.push(ctx.ignore)
+            }
+            next()
+            return
+        }
+
+        if(ctx.content && ctx.content.sourceKey){
+            if( TASK_BLACK_LIST.includes(ctx.content.sourceKey)){
+                console.log(`Deffered: ignore ${ctx.content.sourceKey}`)
+                remove(TASK_BLACK_LIST, t => t == ctx.content.sourceKey)
+                next()
+                return
+            }
+        }
+
 
         if (ctx.expiredAt) {
             if (moment(new Date()).isSameOrBefore(moment(ctx.expiredAt))) {
@@ -126,7 +150,7 @@ const Deferred_Agent = class {
                 .use(processMessage)
 
                 .use(Middlewares.Error.Log)
-                .use(Middlewares.Error.BreakChain)
+                // .use(Middlewares.Error.BreakChain)
 
                 .use((err, msg, next) => {
                     msg.ack()
