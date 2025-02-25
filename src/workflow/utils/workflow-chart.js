@@ -21,22 +21,36 @@ const state = agent => {
   
   const fields = {
     // "type": "Type", 
-    "requiredExperts": "Expert participation required",
-    "assignPretendent": "Assign to expert",
-    "canCreate": "Creating a task is possible",
-    "initialStatus": "Initial task state",
-    "altCount": "Number of alternatives",
-    "maxIteration": "Number of iterations"
+    "requiredExperts": {
+      title: "Expert participation required",
+      value: d => (d) ? `${d.count} from list: ${d.experts.join(", ")}` : null
+    },
+    "assignPretendent": {
+      title: "Assign to expert",
+      value: d => (d) ? d.join(", ") : null
+    },
+    "canCreate": {
+      title: "Creating a task is possible",
+      value: d => d
+    },  
+    "initialStatus": {
+      title: "Initial task state",
+      value: d => d || "start"
+    },  
+    "altCount": {
+      title: "Number of alternatives",
+      value: d => d
+    },  
+    "maxIteration": {
+      title: "Number of iterations",
+      value: d => d
+    }  
   }
 
   let result = keys(fields)
                 .map( key => ({
-                  name: fields[key], 
-                  value: (key == "initialStatus") 
-                    ? agent[key] || "start" 
-                    : (isArray(agent[key])) 
-                        ? agent[key].join(", ")
-                        : agent[key]
+                  name: fields[key].title, 
+                  value: fields[key].value(agent[key])
                 }))
                 .filter( d => d.value)
                 .map( d => `${agent.name.split(" ").join("_")}: ${d.name}: ${d.value}`)
@@ -46,7 +60,7 @@ const state = agent => {
 }
 
 module.exports = data => {
-  // console.log(data)
+  console.log(data)
   let text = plantUml(
     package(
       data.name,
@@ -63,6 +77,6 @@ module.exports = data => {
       ).join("\n")  
     ) + ((data.description) ? `\n${data.name}: ${JSON.stringify(data.description)}` : "")
   )
-  // console.log(text)
+  console.log(text)
   return getUrl(text)  
 }

@@ -10,7 +10,7 @@ const { getPublisher } = require("./workflow-messages")
 const Deferred_Agent_Class = require("./deferred-agent.class")
 const AgentClassModule = require("./agent.class")
 
-const { isArray, last } = require("lodash")
+const { isArray, last, flatten } = require("lodash")
 
 const storeInDB = async event => {
     let publisher = await getPublisher()
@@ -55,6 +55,7 @@ const Workflow = class {
         console.log(`Init workflow: ${this.options.WORKFLOW_TYPE}...`)
         this.agents = []
         for (let agentOptions of this.options.agents) {
+            console.log("agentOptions", agentOptions)
             let agent = createAgent(extend({}, agentOptions, { WORKFLOW_TYPE: this.options.WORKFLOW_TYPE }))
             AGENTS[agent.alias] = agent
             this.agents.push(agent)
@@ -133,6 +134,12 @@ const selectWorkflow = selector => {
 }
 
 
+const getAvailableAgents = () => {
+    let workflows = selectWorkflow( w => w.options.state == "available")
+    return flatten(workflows.map( w => w.agents.map(a => a.ALIAS)))
+}
+
+
 const init = async () => {
 
     await AgentClassModule.init()
@@ -161,6 +168,7 @@ const init = async () => {
         AGENTS = {}
         WORKFLOWS = {}
 
+        console.log(JSON.stringify(workflows, null, " "))
         
         for (const workflow of workflows) {
             workflowAlias = workflow.name.split(" ").join("_")
@@ -189,6 +197,7 @@ const init = async () => {
         select,
         agent,
         selectWorkflow,
+        getAvailableAgents,
         workflow,
         close,
         getEmployeeStats: async options => {

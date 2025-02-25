@@ -71,23 +71,27 @@ const findPretendents = async (options, agent) => {
 
     let { user, alias } = options
 
+    console.log("agent.requiredExperts", agent.requiredExperts)
+
     altCount = agent.altCount
     const { employes, Task, Key } = agent.getEmployeeService()
     
     let pretendents = []
-    let reqCount = 0
+    // let reqCount = 0
 
     if(agent.requiredExperts){
-        reqCount = agent.requiredExperts.length
+        // reqCount = agent.requiredExperts.count
         pretendents = employes(user => {
-            console.log(user.namedAs, agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user))
-            return agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user)
+            // console.log(user.namedAs, agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user))
+            return agent.requiredExperts.experts.includes(user.namedAs) && agent.pretendentCriteria(user)
         })
     }
 
-    console.log("Required experts:", agent.requiredExperts, pretendents.length)
+    pretendents = sampleSize(pretendents, agent.requiredExperts.count)
 
-    pretendents = pretendents.concat(sampleSize(employes(user => !agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user)), altCount - reqCount))    
+    console.log("Required experts:", agent.requiredExperts, pretendents.length, pretendents.map(p => p.namedAs))
+
+    pretendents = pretendents.concat(sampleSize(employes(user => !agent.requiredExperts.experts.includes(user.namedAs) && agent.pretendentCriteria(user)), altCount - agent.requiredExperts.count))    
 
     if (pretendents.length == altCount) {
         return pretendents //.map(p => p.namedAs)
@@ -290,6 +294,9 @@ const Cross_Labeling_Agent = class extends Agent {
         options = extend({}, DEFAULT_OPTIONS, options)
         options.ALIAS = `${options.WORKFLOW_TYPE}_${options.name.split(" ").join("_")}`
 
+
+        console.log("options", options)
+
         super({
             alias: options.ALIAS,
             FEEDBACK_DELAY: options.FEEDBACK_DELAY
@@ -311,7 +318,7 @@ const Cross_Labeling_Agent = class extends Agent {
         this.altCount = options.altCount || 2
         this.maxIteration = options.maxIteration || 2
         this.initialStatus = options.initialStatus || "start"
-        this.requiredExperts = options.requiredExperts || []
+        this.requiredExperts = options.requiredExperts || { count: 0, experts: [] }
         // console.log("Cross_Labeling_Agent", this)
     }
 

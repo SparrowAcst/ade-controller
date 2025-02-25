@@ -216,6 +216,7 @@ module.exports = {
         
         router.post("/workflow/start", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.startWorkflow])
         router.post("/workflow/stop", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.stopWorkflow])
+        router.get("/workflow/agents", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getAvailableAgents])
 
 
         router.post("/trigger/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])

@@ -275,6 +275,22 @@ const getWorkflows = async (req, res) => {
     }
 }
 
+const getAvailableAgents = async (req, res) => {
+    
+    try {
+
+        const workflow = await WORKFLOW()
+        let result = workflow.getAvailableAgents()
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
 const startWorkflow = async (req, res) => {
     
     try {
@@ -455,6 +471,7 @@ module.exports = {
     startWorkflow,
     stopWorkflow,
     getWorkflowChart,
+    getAvailableAgents,
 
     getTriggers,
     startTrigger,
