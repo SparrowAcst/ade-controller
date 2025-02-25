@@ -254,7 +254,7 @@ const Basic_Labeling_Agent = class extends Agent {
         
         this.getAgent("Deferred").send({
             agent: this.ALIAS,
-            ignore: result.key
+            ignore: sourceKey
         })   
 
         await this.commit(
