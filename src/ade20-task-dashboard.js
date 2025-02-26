@@ -334,7 +334,7 @@ const getTriggers = async (req, res) => {
     
     try {
 
-        let result = await TRIGGERS.select()
+        let result = await TRIGGERS.getTriggersInfo()
         res.send(result)
 
     } catch (e) {
