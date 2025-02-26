@@ -131,7 +131,7 @@ const selectWorkflow = selector => {
     return sortBy(keys(WORKFLOWS)
         .filter(key => selector(WORKFLOWS[key]))
         .map(key => WORKFLOWS[key]),
-        d => d.name
+        d => d.options.name
     )    
 }
 
