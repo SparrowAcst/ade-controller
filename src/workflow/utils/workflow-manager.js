@@ -132,6 +132,7 @@ const selectWorkflow = selector => {
         .filter(key => selector(WORKFLOWS[key]))
         .map(key => WORKFLOWS[key]),
         d => d.name
+    )    
 }
 
 
