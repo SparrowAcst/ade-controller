@@ -100,10 +100,9 @@ const getTriggersInfo = async () => {
             pipeline
         })
         
-        console.log("stat", stat)
-
+        let triggered = find(stat, s => s.state == "triggered")
         trigger.stat = {
-            emitted: find(stat, s => s.state == "triggered").count,
+            emitted: (triggered) ? triggered.count : 0,
             total: stat.map(s => s.count).reduce((a,b) => a+b, 0)
         }    
     }
