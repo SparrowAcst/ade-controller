@@ -55,7 +55,14 @@ const select = async selector => {
             $project: { 
                 _id: 0 
             } 
-        }
+        },
+          {
+            $sort:
+              {
+                workflow: 1,
+                name: 1,
+              },
+          }
     ]
     let triggers = await docdb.aggregate({
         db,

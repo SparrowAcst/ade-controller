@@ -10,7 +10,7 @@ const { getPublisher } = require("./workflow-messages")
 const Deferred_Agent_Class = require("./deferred-agent.class")
 const AgentClassModule = require("./agent.class")
 
-const { isArray, last, flatten } = require("lodash")
+const { isArray, last, flatten, sortBy } = require("lodash")
 
 const storeInDB = async event => {
     let publisher = await getPublisher()
@@ -128,9 +128,10 @@ const select = selector => {
 
 const selectWorkflow = selector => {
     selector = normalizeSelector(selector)
-    return keys(WORKFLOWS)
+    return sortBy(keys(WORKFLOWS)
         .filter(key => selector(WORKFLOWS[key]))
-        .map(key => WORKFLOWS[key])
+        .map(key => WORKFLOWS[key]),
+        d => d.name
 }
 
 
