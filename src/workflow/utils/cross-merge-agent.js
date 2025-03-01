@@ -17,8 +17,10 @@ const DEFAULT_OPTIONS = {
     // DEFFERED_TIMEOUT: [15, "seconds"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
-    TASK_QUOTE: 25
+    TASK_QUOTE: 30
 }
+
+
 
 const checkPretendentCriteria = (agent, user) => {
 
