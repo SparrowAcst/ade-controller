@@ -385,6 +385,12 @@ const Agent = class {
         return result
     }
 
+    async chart1(sourceKey) {
+        const { Task } = this.getEmployeeService()
+        let result = await Task.chart1(sourceKey)
+        return result
+    }
+
     async updateData({ sourceKey, update }) {
         const { Task } = this.getEmployeeService()
         await Task.updateData({ sourceKey, update })

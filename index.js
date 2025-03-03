@@ -169,6 +169,8 @@ module.exports = {
         router.post("/labeling/submit-record/", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.submitRecordData])
         router.post("/labeling/rollback-record/", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.rollbackRecordData])
         router.post("/labeling/get-version-chart/", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.getVersionChart])
+        router.post("/labeling/get-version-chart/v2", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.getVersionChart1])
+        
         router.post("/labeling/get-metadata/", [authorize, DBCache, lockCurrentDataset,  ade20Labeling.getMetadata])
         router.post("/labeling/analysis/", [authorize, DBCache, lockCurrentDataset, ade20Labeling.getSegmentationAnalysis])
         router.post("/labeling/forms/", [authorize, DBCache, lockCurrentDataset, ade20Labeling.getForms])
@@ -193,6 +195,8 @@ module.exports = {
         router.post("/task-dashboard/employee-task/", [authorize, DBCache, lockCurrentDataset, ade20TaskDashboard.getTaskList])
         router.post("/task-dashboard/metadata/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getMetadata])
         router.post("/task-dashboard/chart/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getChart])
+        router.post("/task-dashboard/chart/v2", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getChart1])
+        
         router.post("/task-dashboard/rollback/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.rollback])
         router.post("/task-dashboard/fastforward/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.fastForward])
         router.post("/task-dashboard/get-employes/", [authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getEmployes])

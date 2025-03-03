@@ -172,6 +172,27 @@ const getVersionChart = async (req, res) => {
     }
 }
 
+const getVersionChart1 = async (req, res) => {
+     try {
+        let {sourceKey, agent} = req.body.options
+        const workflow = await WORKFLOW()
+        
+        agentInstance = workflow.agent(agent)
+        
+        if(!agentInstance) throw new Error(`Agent ${agent} not found`)
+        
+        let result = await agentInstance.chart1({sourceKey})
+        res.send(result)
+
+    } catch (e) {
+
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
 
 const getSegmentationAnalysis = async (req, res) => {
      try {
@@ -545,6 +566,7 @@ module.exports = {
     submitRecordData,
     rollbackRecordData,
     getVersionChart,
+    getVersionChart1,
     getMetadata,
     getSegmentationAnalysis,
     getEmployeeStats,

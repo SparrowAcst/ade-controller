@@ -73,6 +73,7 @@ const delFromDB = async event => {
 }
 
 const createVersionChart = require("./data-version-chart")
+const VersionChart = require("./data-version-chart-renderer")
 const Key = require("./task-key")
 
 
@@ -530,6 +531,16 @@ const VersionManager = class extends EventEmitter {
             formatComment: options.formatComment,
             formatDate: options.formatDate
         })
+    }
+
+    getChart1(options) {
+        options = options || {}
+        let versionsView = this.versions.map(v => extend({}, v))
+        return VersionChart.getChart(versionsView)
+        // : versionsView,
+        //     formatComment: options.formatComment,
+        //     formatDate: options.formatDate
+        // })
     }
 
     getHistory(options = {}) {

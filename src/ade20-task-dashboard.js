@@ -99,6 +99,27 @@ const getChart = async (req, res) => {
 
 }
 
+const getChart1 = async (req, res) => {
+    try {
+        const { sourceKey } = req.body.options
+
+        const employeeManager = await EMPLOYEE_MANAGER()
+        const { Task } = employeeManager
+
+        let chart = await Task.chart1(sourceKey)
+        // console.log(JSON.stringify(chart, null, " "))
+        res.send(chart)
+
+    } catch (e) {
+        console.log(e.toString(), e.stack)
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+
+}
+
 const rollback = async (req, res) => {
     try {
 
@@ -461,6 +482,8 @@ module.exports = {
     getTaskList,
     getMetadata,
     getChart,
+    getChart1,
+    
     rollback,
     fastForward,
     getEmployes,

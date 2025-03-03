@@ -502,6 +502,11 @@ const chart = async taskKey => {
     return versionManager.getChart()
 }
 
+const chart1 = async taskKey => {
+    let versionManager = await VERSION_SERVICE.getManager({key: Key(taskKey).getDataKey()})
+    return versionManager.getChart1()
+}
+
 
 const getEmployeeStats = async options => {
     let result = await VERSION_SERVICE.getEmployeeStats(options)
@@ -579,6 +584,7 @@ const init = async () => {
         select,
         context,
         chart,
+        chart1,
         updateData,
         updateMetadata,
         altVersions
