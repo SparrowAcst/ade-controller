@@ -1,6 +1,8 @@
 const { extend, keys, sum, get, isArray, find, groupBy, flatten, uniqBy } = require("lodash")
 const moment = require("moment")
 
+const log  = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 const EMPLOYEE_MANAGER = require("./workflow/utils/employee-manager")
 const WORKFLOW = require("./workflow")
 const TRIGGERS = require("./workflow/utils/trigger-manager")
@@ -51,7 +53,7 @@ const getTaskList = async (req, res) => {
         })
 
     } catch (e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body
@@ -70,7 +72,7 @@ const getMetadata = async (req, res) => {
             taskType
         })
     } catch (e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body
@@ -86,11 +88,11 @@ const getChart = async (req, res) => {
         const { Task } = employeeManager
 
         let chart = await Task.chart(sourceKey)
-        // console.log(JSON.stringify(chart, null, " "))
+        // log(JSON.stringify(chart, null, " "))
         res.send(chart)
 
     } catch (e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body
@@ -107,11 +109,11 @@ const getChart1 = async (req, res) => {
         const { Task } = employeeManager
 
         let chart = await Task.chart1(sourceKey)
-        // console.log(JSON.stringify(chart, null, " "))
+        // log(JSON.stringify(chart, null, " "))
         res.send(chart)
 
     } catch (e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body
@@ -174,7 +176,7 @@ const fastForward = async (req, res) => {
         res.send(result)
 
     } catch (e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body

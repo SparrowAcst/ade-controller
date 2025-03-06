@@ -2,6 +2,8 @@ const docdb = require("./utils/docdb")
 const { extend, find, last } = require("lodash")
 const moment = require("moment")
 
+const log  = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 const Key = require("./workflow/utils/task-key")
 const WORKFLOW = require("./workflow")
 
@@ -16,7 +18,7 @@ const getRecordData = async (req, res) => {
         agentInstance = workflow.agent(description.taskType)
         
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
-        // console.log(sourceKey)
+        // log(sourceKey)
         let result = await agentInstance.read(sourceKey)
         result.permissions = agentInstance.uiPermissions
         res.send(result)
@@ -202,8 +204,8 @@ const getSegmentationAnalysis = async (req, res) => {
         const description = Key(sourceKey).getDescription()
         
         agentAlias = agent || description.taskType 
-        // console.log("sourceKey", sourceKey)
-        // console.log("agentAlias", agentAlias)
+        // log("sourceKey", sourceKey)
+        // log("agentAlias", agentAlias)
         
         const workflow = await WORKFLOW()
         agentInstance = workflow.agent(agentAlias)
@@ -215,7 +217,7 @@ const getSegmentationAnalysis = async (req, res) => {
         res.send(result)
 
     } catch (e) {
-        console.log(e.toString())
+        log(e.toString())
         res.send({
             error: `${e.toString()}\n${e.stack}`,
             requestBody: req.body

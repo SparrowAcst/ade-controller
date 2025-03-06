@@ -11,6 +11,8 @@ const docdb = require("./utils/docdb")
 const db = require("../.config").docdb
 
 
+const log  = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 
 let CACHE = {}
 let COLLECTIONS = {}
@@ -22,9 +24,9 @@ const normalizeCollectionName = collectionName => {
 
 const init = async collections => {
 
-    console.log(`Init preloaded cache:\n${JSON.stringify(db, null, " ")}`)
+    log(`Init preloaded cache:\n${JSON.stringify(db, null, " ")}`)
     COLLECTIONS = collections || COLLECTIONS
-    console.log(COLLECTIONS)
+    log(COLLECTIONS)
 
     let cacheProperties = keys(COLLECTIONS)
 
@@ -34,7 +36,7 @@ const init = async collections => {
 
         if (COLLECTIONS[cacheProperty].calculate && isFunction(COLLECTIONS[cacheProperty].calculate )){
             CACHE[cacheProperty] = COLLECTIONS[cacheProperty].calculate
-            console.log(`Set calculable ${cacheProperty}`) // as ${CACHE[cacheProperty].toString()}`)
+            log(`Set calculable ${cacheProperty}`) // as ${CACHE[cacheProperty].toString()}`)
             res.push(`Set calculable ${cacheProperty}`) // as ${CACHE[cacheProperty].toString()}`)
             continue
         }
@@ -56,7 +58,7 @@ const init = async collections => {
             CACHE[cacheProperty] = CACHE[cacheProperty].map(d =>  COLLECTIONS[cacheProperty].mapper(d))
         }
         
-        console.log(`Load ${CACHE[cacheProperty].length} items from ${normalizeCollectionName(COLLECTIONS[cacheProperty].collection)} as ${cacheProperty}`)
+        log(`Load ${CACHE[cacheProperty].length} items from ${normalizeCollectionName(COLLECTIONS[cacheProperty].collection)} as ${cacheProperty}`)
         res.push(`Load ${CACHE[cacheProperty].length} items from ${normalizeCollectionName(COLLECTIONS[cacheProperty].collection)} as ${cacheProperty}`)
     }
 
@@ -67,7 +69,7 @@ const init = async collections => {
 
 const handler = async (req, res, next) => {
 
-    // console.log(req.url, /\/ade-admin\/cache-update\//.test(req.url) )
+    // log(req.url, /\/ade-admin\/cache-update\//.test(req.url) )
     if ( /\/ade-admin\/cache-update\//.test(req.url) ) {
         const stat = await init()
         res.status(200).send(stat)

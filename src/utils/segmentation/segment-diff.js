@@ -19,6 +19,8 @@ const {
 
 } = require("lodash")
 
+const log  = require("../../workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 const Diff = require('jsondiffpatch')
 
 
@@ -2905,7 +2907,7 @@ module.exports = {
 //         ]
 //     }
 
-//     // console.log(JSON.stringify(getSegmentationChart(segmentation), null, " "))
+//     // log(JSON.stringify(getSegmentationChart(segmentation), null, " "))
 
 //     let s2 = JSON.parse(JSON.stringify(segmentation))
 //     let s3 = JSON.parse(JSON.stringify(segmentation))
@@ -2928,14 +2930,14 @@ module.exports = {
 
 //     let diffs = [d1, d2, d3]
 
-//     console.log(JSON.stringify(getNonConsistencyIntervals(diffs), null, " "))
+//     log(JSON.stringify(getNonConsistencyIntervals(diffs), null, " "))
 
-//     // console.log(JSON.stringify(getSegmentationChart(segmentation, getNonConsistencyIntervals(diffs)), null, " "))
+//     // log(JSON.stringify(getSegmentationChart(segmentation, getNonConsistencyIntervals(diffs)), null, " "))
 
-//     // // console.log(JSON.stringify(getMultiSegmentationChart([segmentation, s2, s3], getNonConsistencyIntervals(diffs)), null, " "))
+//     // // log(JSON.stringify(getMultiSegmentationChart([segmentation, s2, s3], getNonConsistencyIntervals(diffs)), null, " "))
 
 //     // let s4 = merge([segmentation, segmentation, segmentation])
-//     // console.log(JSON.stringify(getSegmentationChart(s4), null, " "))
+//     // log(JSON.stringify(getSegmentationChart(s4), null, " "))
 
 
 // }

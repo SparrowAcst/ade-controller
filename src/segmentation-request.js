@@ -223,7 +223,7 @@
 // 		commands
 // 	})				
 	
-// 	console.log( `Segmentation request cache: store ${commands.length-1} items into settings.segmentation_request_cache` )
+// 	log( `Segmentation request cache: store ${commands.length-1} items into settings.segmentation_request_cache` )
 
 // } 
 
@@ -289,8 +289,8 @@
 // 		CACHE.set(d.hash, d)
 // 	})				
 
-// 	console.log(`Segmentation request cache: restore ${data.length} items from settings.segmentation_request_cache` )
-// 	console.log(CACHE.getStats())
+// 	log(`Segmentation request cache: restore ${data.length} items from settings.segmentation_request_cache` )
+// 	log(CACHE.getStats())
 	
 // } 
 
@@ -322,6 +322,8 @@
 
 const { extend, find, last } = require("lodash")
 const moment = require("moment")
+
+const log  = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
 
 const Key = require("./workflow/utils/task-key")
 const segmentationAnalysis = require("./utils/segmentation/segment-analysis")
@@ -355,15 +357,15 @@ const getSegmentationData = async (req, res) => {
 const updateSegmentationData = async (req, res) => {
 
 	let sourceKey = req.query.requestId || req.params.requestId || (req.body && req.body.requestId)
-    // console.log(req.query.requestId || req.params.requestId)
-    // console.log(sourceKey)
+    // log(req.query.requestId || req.params.requestId)
+    // log(sourceKey)
     
     const description = Key(sourceKey).getDescription()
     const workflow = await WORKFLOW()
     agentInstance = workflow.agent(description.taskType)
     if(!agentInstance) throw new Error(`Agent ${agent} not found`)
     
-   // console.log("req.body", req.body) 	
+   // log("req.body", req.body) 	
 
     await agentInstance.updateSegmentationData({
     	sourceKey,

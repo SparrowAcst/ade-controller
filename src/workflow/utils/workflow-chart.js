@@ -1,3 +1,6 @@
+
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const { getUrl } = require("../../utils/plantuml")
 
 const { flatten, keys, isArray } = require("lodash")
@@ -60,7 +63,7 @@ const state = agent => {
 }
 
 module.exports = data => {
-  console.log(data)
+  log(data)
   let text = plantUml(
     package(
       data.name,
@@ -77,6 +80,6 @@ module.exports = data => {
       ).join("\n")  
     ) + ((data.description) ? `\n${data.name}: ${JSON.stringify(data.description)}` : "")
   )
-  console.log(text)
+  log(text)
   return getUrl(text)  
 }

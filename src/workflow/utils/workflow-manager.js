@@ -1,5 +1,7 @@
 const uuid = require("uuid").v4
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const docdb = require("../../utils/docdb")
 
 const config = require("../../../.config")
@@ -52,27 +54,27 @@ const Workflow = class {
 
         this.options = options || {}
         this.options.WORKFLOW_TYPE = this.options.name.split(" ").join("_")
-        console.log(`Init workflow: ${this.options.WORKFLOW_TYPE}...`)
+        log(`Init workflow: ${this.options.WORKFLOW_TYPE}...`)
         this.agents = []
         for (let agentOptions of this.options.agents) {
-            console.log("agentOptions", agentOptions)
+            log("agentOptions", agentOptions)
             let agent = createAgent(extend({}, agentOptions, { WORKFLOW_TYPE: this.options.WORKFLOW_TYPE }))
             AGENTS[agent.alias] = agent
             this.agents.push(agent)
-            console.log(`Create agent: ${agent.alias}`)
+            log(`Create agent: ${agent.alias}`)
         }
 
         this.options.log = this.options.log || []
         this.options.log = (isArray(this.options.log)) ? this.options.log : [this.options.log]
 
-        console.log(`Workflow: ${this.options.WORKFLOW_TYPE} initiated`)
+        log(`Workflow: ${this.options.WORKFLOW_TYPE} initiated`)
 
     }
 
     async start() {
-        console.log(`Start workflow: ${this.options.WORKFLOW_TYPE}...`)
+        log(`Start workflow: ${this.options.WORKFLOW_TYPE}...`)
         for (let agent of this.agents) {
-            console.log(`Start agent: ${agent.alias}`)
+            log(`Start agent: ${agent.alias}`)
             await agent.start()
         }
         this.options.state = "available"
@@ -82,16 +84,16 @@ const Workflow = class {
             date: new Date(),
             message: `Workflow ${this.options.WORKFLOW_TYPE} start successfuly.`
         })
-        console.log(last(this.options.log))
+        log(last(this.options.log))
 
         await storeInDB(this.options)
-        // console.log(`Workflow: ${this.options.WORKFLOW_TYPE} is available`)
+        // log(`Workflow: ${this.options.WORKFLOW_TYPE} is available`)
     }
 
     async stop() {
-        console.log(`Stop workflow: ${this.options.WORKFLOW_TYPE}...`)
+        log(`Stop workflow: ${this.options.WORKFLOW_TYPE}...`)
         for (let agent of this.agents) {
-            console.log(`Stop agent: ${agent.alias}`)
+            log(`Stop agent: ${agent.alias}`)
             await agent.stop()
         }
         this.options.state = "stopped"
@@ -100,10 +102,10 @@ const Workflow = class {
             date: new Date(),
             message: `Workflow ${this.options.WORKFLOW_TYPE} stop successfuly.`
         })
-        console.log(last(this.options.log))
+        log(last(this.options.log))
 
         await storeInDB(this.options)
-        // console.log(`Workflow: ${this.options.WORKFLOW_TYPE} is stopped`)    
+        // log(`Workflow: ${this.options.WORKFLOW_TYPE} is stopped`)    
     }
 
     getChart() {
@@ -128,17 +130,18 @@ const select = selector => {
 
 const selectWorkflow = selector => {
     selector = normalizeSelector(selector)
-    return sortBy(keys(WORKFLOWS)
-        .filter(key => selector(WORKFLOWS[key]))
-        .map(key => WORKFLOWS[key]),
+    return sortBy(
+        keys(WORKFLOWS)
+            .filter(key => selector(WORKFLOWS[key]))
+            .map(key => WORKFLOWS[key]),
         d => d.options.name
-    )    
+    )
 }
 
 
 const getAvailableAgents = () => {
-    let workflows = selectWorkflow( w => w.options.state == "available")
-    return flatten(workflows.map( w => w.agents.map(a => a.ALIAS)))
+    let workflows = selectWorkflow(w => w.options.state == "available")
+    return flatten(workflows.map(w => w.agents.map(a => a.ALIAS)))
 }
 
 
@@ -147,7 +150,7 @@ const init = async () => {
     await AgentClassModule.init()
 
     if (!AGENTS) {
-        console.log("Workflow Manager init...")
+        log("Workflow Manager init...")
 
         let workflows = await docdb.aggregate({
             db,
@@ -170,8 +173,8 @@ const init = async () => {
         AGENTS = {}
         WORKFLOWS = {}
 
-        console.log(JSON.stringify(workflows, null, " "))
-        
+        log(JSON.stringify(workflows, null, " "))
+
         for (const workflow of workflows) {
             workflowAlias = workflow.name.split(" ").join("_")
             WORKFLOWS[workflowAlias] = new Workflow(workflow)
@@ -185,15 +188,15 @@ const init = async () => {
 
         let deferredAgent = new Deferred_Agent_Class()
         AGENTS["Deffered"] = deferredAgent
-        console.log("Start: ", deferredAgent.ALIAS)
+        log("Start: ", deferredAgent.ALIAS)
         await deferredAgent.start()
 
-        console.log(`WORKFLOWS:\n${selectWorkflow().map(w => w.options.WORKFLOW_TYPE + ": " + w.options.state).join("\n")} `)
-        console.log(`AGENTS:\n${select().map(a => a.ALIAS).join("\n")}`)
-        console.log("Workflow Manager is available")
+        log(`WORKFLOWS:\n${selectWorkflow().map(w => w.options.WORKFLOW_TYPE + ": " + w.options.state).join("\n")} `)
+        log(`AGENTS:\n${select().map(a => a.ALIAS).join("\n")}`)
+        log("Workflow Manager is available")
     }
 
-    
+
 
     return {
         select,

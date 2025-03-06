@@ -1,5 +1,7 @@
 const { extend, find, isArray, sampleSize, uniqBy, flatten, keys } = require("lodash")
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const { Agent } = require("./agent.class")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const segmentationAnalysis = require("../../utils/segmentation/segment-analysis")
@@ -92,13 +94,13 @@ const Cross_Merge_Agent = class extends Agent {
         this.assignPretendent = options.assignPretendent
         this.initialStatus = options.initialStatus || "start"
         this.noSyncAltVersions = true
-        // console.log(this)
+        // log(this)
     }
 
 
     async create({ user, sourceKey, metadata, waitFor, release, altVersions }) {
 
-        console.log(`${this.ALIAS} create...`)
+        log(`${this.ALIAS} create...`)
 
         const { Task } = this.getEmployeeService()
 
@@ -182,7 +184,7 @@ const Cross_Merge_Agent = class extends Agent {
 
     async save({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} save...`)
+        log(`${this.ALIAS} save...`)
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
 
@@ -212,7 +214,7 @@ const Cross_Merge_Agent = class extends Agent {
 
     async submit({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} submit...`)
+        log(`${this.ALIAS} submit...`)
 
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
@@ -257,7 +259,7 @@ const Cross_Merge_Agent = class extends Agent {
 
     async rollback({ user, sourceKey }) {
 
-        console.log(`${this.ALIAS} rollback...`)
+        log(`${this.ALIAS} rollback...`)
 
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
@@ -286,7 +288,7 @@ const Cross_Merge_Agent = class extends Agent {
 
     async fastForward({ user, sourceKey }) {
 
-        console.log(`${this.ALIAS} fastForward...`)
+        log(`${this.ALIAS} fastForward...`)
 
         const employeeService = this.getEmployeeService()
         const { Task, employee } = employeeService
@@ -324,7 +326,7 @@ const Cross_Merge_Agent = class extends Agent {
 
     async commit({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} commit...`, metadata)
+        log(`${this.ALIAS} commit...`, metadata)
 
         metadata.expiredAt = null
 
@@ -345,7 +347,7 @@ const Cross_Merge_Agent = class extends Agent {
 
         if (this.NEXT_AGENT) {
 
-            console.log(`${this.ALIAS} create task with ${this.NEXT_AGENT}...`)
+            log(`${this.ALIAS} create task with ${this.NEXT_AGENT}...`)
 
             await this.getAgent(this.NEXT_AGENT).lock({ user, sourceKey })
 
@@ -361,7 +363,7 @@ const Cross_Merge_Agent = class extends Agent {
 
 
         } else {
-            console.log(`${this.ALIAS} commit changes...`)
+            log(`${this.ALIAS} commit changes...`)
 
             result = await Task.commit({
                 user,
@@ -384,7 +386,7 @@ const Cross_Merge_Agent = class extends Agent {
 
     async reject({ user, sourceKey, metadata }) {
 
-        console.log(`${this.ALIAS} reject...`)
+        log(`${this.ALIAS} reject...`)
 
         if (!this.PREV_AGENT) return
 

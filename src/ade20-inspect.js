@@ -17,6 +17,8 @@ const {
 
 const moment = require("moment")
 
+const log  = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 const uuid = require("uuid").v4
 const isValidUUID = require("uuid").validate
 const isUUID = data => isString(data) && isValidUUID(data)
@@ -438,7 +440,7 @@ const addTags = async (req, res) => {
                 return t
             })
             r.tags = sortBy(r.tags, d => d.createdAt)
-            console.log(last(r.tags).tag, first(options.tags).tag)
+            log(last(r.tags).tag, first(options.tags).tag)
             if (last(r.tags).tag == first(options.tags).tag) {
                 r.tags.pop()
             }
@@ -826,7 +828,7 @@ const updateDiagnosis = async (req, res) => {
         let { schema } = req.body.cache.currentDataset
 
 
-        // console.log("updateDiagnosisTags", options.form.id, options.form.diagnosis)
+        // log("updateDiagnosisTags", options.form.id, options.form.diagnosis)
 
 
         let result = await docdb.updateOne({
@@ -844,7 +846,7 @@ const updateDiagnosis = async (req, res) => {
         res.send(result)
 
     } catch (e) {
-        console.log(e.toString())
+        log(e.toString())
         res.send({
             error: e.toString(),
             requestBody: req.body

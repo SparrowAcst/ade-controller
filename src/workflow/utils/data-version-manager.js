@@ -14,6 +14,9 @@ const {
     isArray
 } = require("lodash")
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
+
 const jsondiffpatch = require('jsondiffpatch')
 
 const Diff = jsondiffpatch.create({
@@ -106,17 +109,17 @@ const VersionManager = class extends EventEmitter {
     }
 
     getData(versionId) {
-        // console.log("GET DATA", versionId)
+        // log("GET DATA", versionId)
         let version = find(this.versions, v => v.id == versionId)
         let data = JSON.parse(JSON.stringify(this.data))
         if (version) {
             version.patches.forEach( patch => {
                 let p = JSON.parse(JSON.stringify(patch))
-                // console.log("BEFORE DATA", data.segmentation)
-                // console.log("BEFORE PATCH", JSON.stringify(p, null, " "))
+                // log("BEFORE DATA", data.segmentation)
+                // log("BEFORE PATCH", JSON.stringify(p, null, " "))
                 Diff.patch(data, p)
-                // console.log("AFTER PATCH", JSON.stringify(p, null, " "))
-                // console.log("AFTER DATA", data.segmentation)
+                // log("AFTER PATCH", JSON.stringify(p, null, " "))
+                // log("AFTER DATA", data.segmentation)
             })
         }
         return data
@@ -129,19 +132,19 @@ const VersionManager = class extends EventEmitter {
     }
 
     updateData(options) {
-        // console.log("updateData")
+        // log("updateData")
         let { source, update } = options
         let version = this.getVersion(source.id)
         let prevData = JSON.parse(JSON.stringify(this.getData(source.id)))
         let data = JSON.parse(JSON.stringify(prevData))
 
         keys(update).forEach(key => {
-            // console.log("----",key, update[key])
+            // log("----",key, update[key])
             set(data, key, JSON.parse(JSON.stringify(update[key])))
         })
-        // console.log("BEFORE version.patches", JSON.stringify(version.patches, null, " "))
+        // log("BEFORE version.patches", JSON.stringify(version.patches, null, " "))
         version.patches = version.patches.concat([Diff.diff(prevData, data)]).filter(d => d)
-        // console.log("AFTER version.patches", JSON.stringify(version.patches, null, " "))
+        // log("AFTER version.patches", JSON.stringify(version.patches, null, " "))
         this.emit("store", {
             collection: `${this.schema}.${this.savepointCollection}`,
             data: [version]
@@ -468,7 +471,7 @@ const VersionManager = class extends EventEmitter {
             let { user, altVersions, data, metadata } = options
 
             let parents = altVersions.map(s => this.getVersion(Key(s).versionId()))
-            // console.log(parents)
+            // log(parents)
 
             if (!parents) throw new Error(`Data Version Manager #merge: source list is empty`)
 
@@ -580,7 +583,7 @@ const initVersions = async settings => {
 
     let schema, dataCollection, savepointCollection, dataId
 
-    // console.log("initVersions", settings)
+    // log("initVersions", settings)
 
     let { key } = settings
 
@@ -604,7 +607,7 @@ const initVersions = async settings => {
 
     const id = uuid()
 
-    // console.log("DATAVIEW", dataCollection)
+    // log("DATAVIEW", dataCollection)
 
     let initialCommit = {
         id,

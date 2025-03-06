@@ -9,6 +9,8 @@ const {
 
 } = require("lodash")
 
+const log  = require("../../workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 const jsondiffpatch = require('jsondiffpatch')
 
 const checkedFields = [
@@ -3262,5 +3264,5 @@ module.exports = {
 //   "assigned to": ""
 // }
 
-// console.log(JSON.stringify(checker.diff(l1, l2)))
-// console.log(merge([l1,l2]))
+// log(JSON.stringify(checker.diff(l1, l2)))
+// log(merge([l1,l2]))

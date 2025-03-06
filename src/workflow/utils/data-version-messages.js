@@ -2,6 +2,8 @@ const uuid = require("uuid").v4
 const { extend } = require("lodash")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const config = require("../../../.config")
 const configRB = config.rabbitmq.TEST
 
@@ -14,7 +16,7 @@ const getPublisher = async () => {
         PUBLISHER
             .use((err, msg, next)=> {
                 msg.content = extend(msg.content, {requestId: uuid()})
-                // console.log(`Version Manager send ${msg.content.requestId}: ${msg.content.command} ${msg.content.collection} ${msg.content.data.length} items`)
+                // log(`Version Manager send ${msg.content.requestId}: ${msg.content.command} ${msg.content.collection} ${msg.content.data.length} items`)
                 next()
             })
             .use(Middlewares.Json.stringify)
@@ -35,7 +37,7 @@ const getConsumer = async () => {
                 })
 
                 // .use((err, msg, next)=> {
-                //     // console.log("Version Manager receive:", msg.content)
+                //     // log("Version Manager receive:", msg.content)
                 // })
 
                 .start()

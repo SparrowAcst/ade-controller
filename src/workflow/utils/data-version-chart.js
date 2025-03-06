@@ -21,6 +21,8 @@ const {
     isUndefined
 } = require("lodash")
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const uuid = require("uuid").v4
 const moment = require("moment")
 

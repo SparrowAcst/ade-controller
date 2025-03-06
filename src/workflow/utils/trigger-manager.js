@@ -1,6 +1,8 @@
 const uuid = require("uuid").v4
 const { find } = require("lodash") 
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const docdb = require("../../utils/docdb")
 

@@ -1,5 +1,7 @@
 const uuid = require("uuid").v4
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const docdb = require("../../utils/docdb")
 
 const config = require("../../../.config")

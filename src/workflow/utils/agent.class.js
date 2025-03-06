@@ -3,6 +3,9 @@ const { extend, isArray, sample, isFunction, keys, findLast } = require("lodash"
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const segmentationAnalysis = require("../../utils/segmentation/segment-analysis")
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
+
 const config = require("../../../.config")
 const normalize = config.rabbitmq.TEST.normalize
 
@@ -21,42 +24,42 @@ const findPretendent = async options => {
 
     let { user, alias, key } = options
 
-    // console.log("findPretendent options", options)
+    // log("findPretendent options", options)
     const { employes, Task, Key } = EMPOLOYEE_SERVICE
 
     const agent = AGENTS[alias]
 
     if (user && user != "AUTO_USER_NAME") {
-        // console.log("Direct assigment for:", user)
+        // log("Direct assigment for:", user)
         if (agent.pretendentCriteria(user)) {
-            // console.log("Direct:", user)
+            // log("Direct:", user)
             return user
         } else {
-            // console.log(alias, ": No criteria for Direct assigement:", user)
+            // log(alias, ": No criteria for Direct assigement:", user)
             return
         }
 
     }
 
-    // console.log(alias, AGENTS[alias])
+    // log(alias, AGENTS[alias])
 
     const ctx = await agent.read(key)
     const task = (ctx) ? ctx.task || {} : {}
 
     let pretendent = (task.waitFor || []).pop()
     if (pretendent) {
-        // console.log("Wait for", pretendent)
+        // log("Wait for", pretendent)
         return pretendent
     }
 
     pretendent = sample(employes(user => agent.pretendentCriteria(user)))
 
     if (pretendent) {
-        // console.log("Auto:", pretendent.namedAs)
+        // log("Auto:", pretendent.namedAs)
         return pretendent.namedAs
     }
 
-    // console.log("Not found")
+    // log("Not found")
 }
 
 
@@ -82,16 +85,16 @@ const createCommand = async (error, message, next) => {
 
         let isPossible = await agent.possibilityOfCreating(key)
         if(isPossible != true){
-            console.log(`Impossble of creation task: ${key}`)
-            console.log(isPossible)
+            log(`Impossble of creation task: ${key}`)
+            log(isPossible)
             agent.sendToNoCreate(extend({}, {data: message.content, reason: isPossible }))
             next()
             return
         }
 
-        // console.log("CREATE COMMAND")
+        // log("CREATE COMMAND")
         let pretendent = await findPretendent(message.content)
-        console.log("Create task for pretendent", pretendent)
+        log("Create task for pretendent", pretendent)
         metadata = extend({}, metadata, {
             task: agent.ALIAS,
             status: "start",
@@ -114,11 +117,11 @@ const createCommand = async (error, message, next) => {
                 waitFor
             })
 
-            console.log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
+            log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent}`)
 
         } else {
 
-            console.log(`${agent.alias} > Not assigned ${key}`)
+            log(`${agent.alias} > Not assigned ${key}`)
             await agent.sendToScheduler({
                 data: message.content
             })
@@ -126,7 +129,7 @@ const createCommand = async (error, message, next) => {
         }
 
         if (release) {
-            console.log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
+            log(`${Key(key).agent()} release > ${Key(key).get()} > ${release.user}`)
             await Task.release(release)
         }
 
@@ -220,16 +223,16 @@ const Agent = class {
             EMPOLOYEE_SERVICE = await EmployeeManager()
         }
 
-        // console.log("CONSUMER_OPTIONS", this.CONSUMER_OPTIONS)
-        // console.log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
-        // console.log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
-        // console.log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
+        // log("CONSUMER_OPTIONS", this.CONSUMER_OPTIONS)
+        // log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
+        // log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
+        // log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
 
         await this.setTaskDisabled(false)
 
         this.consumer = await AmqpManager.createConsumer(this.CONSUMER_OPTIONS)
 
-        // console.log(this.FEEDBACK_OPTIONS)
+        // log(this.FEEDBACK_OPTIONS)
 
         this.feedbackPublisher = await AmqpManager.createPublisher(this.FEEDBACK_OPTIONS)
         this.feedbackPublisher.use(Middlewares.Json.stringify)
@@ -260,11 +263,11 @@ const Agent = class {
         const {Key, employes, updateEmployee} = this.getEmployeeService()
 
         const employesList = employes()
-        console.log(this.ALIAS, "set task disabled: ", value)
+        log(this.ALIAS, "set task disabled: ", value)
         for(let emp of employesList){
             (emp.taskList || []).forEach( task => {
                 if(Key(task.key).taskType() == this.ALIAS){
-                    console.log(emp.namedAs,">", task.key, "> disabled: ", value)
+                    log(emp.namedAs,">", task.key, "> disabled: ", value)
                     task.disabled = value
                 }
             })
@@ -336,7 +339,7 @@ const Agent = class {
 
     async sendToScheduler(message) {
         message.publisher = this.FEEDBACK_OPTIONS
-        console.log("Send to task scheduler:", message.data.key)
+        log("Send to task scheduler:", message.data.key)
         this.schedulerPublisher.send(message)
     }
 
@@ -344,7 +347,7 @@ const Agent = class {
         message.publisher = this.FEEDBACK_OPTIONS
         message.date = new Date()
         message.requestId = uuid()
-        console.log("Send to No Created Task Storage:", message.data.key)
+        log("Send to No Created Task Storage:", message.data.key)
         this.noCreatePublisher.send(message)
     }
 
@@ -441,7 +444,7 @@ const getEmployeeStats = async options => {
 module.exports = {
     agent: alias => AGENTS[alias],
     register: (alias, instance) => {
-        console.log("Register", alias, instance)
+        log("Register", alias, instance)
 
         AGENTS[alias] = instance
     },

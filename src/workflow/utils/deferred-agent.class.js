@@ -1,5 +1,8 @@
 const uuid = require("uuid").v4
 const { extend, isArray, sample, isFunction, keys, find, remove } = require("lodash")
+
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const { agent, register } = require("./agent.class")
 const config = require("../../../.config")
@@ -62,11 +65,11 @@ const processMessage = async (err, message, next) => {
 
         let ctx = message.content
 
-        // console.log("DEFERRED", message.content)
+        // log("DEFERRED", message.content)
 
         if(ctx.ignore){
             if(!find(TASK_BLACK_LIST, t => t == ctx.ignore)){
-                console.log(`Deffered: black list add ${ctx.ignore}`)
+                log(`Deffered: black list add ${ctx.ignore}`)
                 TASK_BLACK_LIST.push(ctx.ignore)
             }
             next()
@@ -75,7 +78,7 @@ const processMessage = async (err, message, next) => {
 
         if(ctx.content && ctx.content.sourceKey){
             if( TASK_BLACK_LIST.includes(ctx.content.sourceKey)){
-                console.log(`Deffered: ignore ${ctx.content.sourceKey}`)
+                log(`Deffered: ignore ${ctx.content.sourceKey}`)
                 remove(TASK_BLACK_LIST, t => t == ctx.content.sourceKey)
                 next()
                 return
@@ -85,7 +88,7 @@ const processMessage = async (err, message, next) => {
 
         if (ctx.expiredAt) {
             if (moment(new Date()).isSameOrBefore(moment(ctx.expiredAt))) {
-                // console.log(`Deferred: ${ctx.content.sourceKey} postponed until ${JSON.stringify(ctx.expiredAt)} (${moment(ctx.expiredAt).toNow()})...`)
+                // log(`Deferred: ${ctx.content.sourceKey} postponed until ${JSON.stringify(ctx.expiredAt)} (${moment(ctx.expiredAt).toNow()})...`)
                 let self = agent("Deferred")
                 await self.feedback(ctx)
                 next()
@@ -97,15 +100,15 @@ const processMessage = async (err, message, next) => {
             const respondent = agent(ctx.agent)
             if(respondent){
                 if(respondent.state == "available"){
-                    // console.log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
+                    // log(`Deferred: ${ctx.content.sourceKey} continue with ${ctx.agent}`)
                     await respondent.commit(ctx.content)
                 } else {
-                    // console.log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
+                    // log(`Deferred: Agent ${ctx.agent} state: ${respondent.state}. ${ctx.content.sourceKey} waits for an agent to become available.`)
                     let self = agent("Deferred")
                     await self.feedback(ctx)
                 }
             } else {
-                console.log(`Deffered: agent ${ctx.agent} not found`)
+                log(`Deffered: agent ${ctx.agent} not found`)
                 let self = agent("Deferred")
                 await self.sendToNoCreate(extend({}, ctx, {reason:`Deffered: agent ${ctx.agent} not found`}))
             }        
@@ -132,8 +135,8 @@ const Deferred_Agent = class {
 
     async start() {
 
-        // console.log("CONSUMER_OPTIONS", CONSUMER_OPTIONS)
-        // console.log("FEEDBACK_OPTIONS", FEEDBACK_OPTIONS)
+        // log("CONSUMER_OPTIONS", CONSUMER_OPTIONS)
+        // log("FEEDBACK_OPTIONS", FEEDBACK_OPTIONS)
         if(!consumer){
             consumer = await AmqpManager.createConsumer(CONSUMER_OPTIONS)
 
@@ -182,7 +185,7 @@ const Deferred_Agent = class {
         if(!noCreatePublisher){
             await this.start()
         }
-        console.log("Send to No Created Task Storage:", message)
+        log("Send to No Created Task Storage:", message)
         noCreatePublisher.send(message)
     }
 }

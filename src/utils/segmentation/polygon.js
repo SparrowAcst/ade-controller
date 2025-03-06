@@ -16,6 +16,9 @@ let { avg, sum } = require("../stat")
 
 let { kmeans, euclidianDistance } = require("../cluster1")
 
+const log  = require("../../workflow/utils/logger")(__filename) //(path.basename(__filename))
+
+
 /////////////////////////////////////////////////////////////////////////////////
 
 const getSegmentArray = polygons =>
@@ -72,9 +75,9 @@ const getIntersection = polygons => {
         try {
             intersection = BooleanOperations.intersect(intersection, p)
         } catch (e) {
-            console.log("------------------------------------- ERROR I", e.toString())
-            console.log("p", getPointArray([p]))
-            console.log("intersection", getPointArray([intersection]))
+            log("------------------------------------- ERROR I", e.toString())
+            log("p", getPointArray([p]))
+            log("intersection", getPointArray([intersection]))
         }
         if (!intersection) return
     }
@@ -89,9 +92,9 @@ const getUnion = polygons => {
         try {
             union = BooleanOperations.unify(union, p)
         } catch (e) {
-            console.log("--------------------------------------- ERROR U", e.toString())
-            console.log("p", getPointArray([p]))
-            console.log("union", getPointArray([union]))
+            log("--------------------------------------- ERROR U", e.toString())
+            log("p", getPointArray([p]))
+            log("union", getPointArray([union]))
         }
         if (!union) return
     }
@@ -105,9 +108,9 @@ const getSubtract = polygons => {
         try {
             subtract = BooleanOperations.subtract(subtract, p)
         } catch (e) {
-            console.log("--------------------------------------- ERROR S", e.toString())
-            console.log("p", getPointArray([p]))
-            console.log("union", getPointArray([union]))
+            log("--------------------------------------- ERROR S", e.toString())
+            log("p", getPointArray([p]))
+            log("union", getPointArray([union]))
         }
         if (!subtract) return
     }
@@ -376,7 +379,7 @@ const array2Polygons = a => a.map(d => polygon(d.map(v => point(v))))
 const polygon2Array = polygon => getPointArray([polygon]).map(p => [p.x, p.y])
 
 const create = data => {
-    // console.log(data)
+    // log(data)
     return polygon(data.map(d => point(d)))
 }
 
@@ -408,7 +411,7 @@ const create = data => {
 //         let p1 = points[i + 1]
 //         let p2 = points[i + 2]
 
-//         // console.log(segment(p0,p2).intersect(p))
+//         // log(segment(p0,p2).intersect(p))
 
 //         while (normalizePointSet(segment(p0, p2).intersect(p)).length > 2) {
 //             p0 = point([
@@ -446,38 +449,38 @@ const create = data => {
 
 
 // const selectPointsWithinSector = (points, sector, sceleton) => {
-//     // console.log("-------------- sceleton ----------------")
+//     // log("-------------- sceleton ----------------")
 //     let res = points.filter(p => {
 //         let s = segment(sector.point, p)
 //         let segmentsIntersection = sector.segment.intersect(s)
 //         let sceletonIntersection = s.intersect(sceleton)
 //         let sectorPointInSceleton = sector.point.on(sceleton)
 //         let pointInSceleton = p.on(sceleton)
-//         // console.log("-------------------------------")
+//         // log("-------------------------------")
 //         if (segmentsIntersection.length == 1) {
-//             // console.log("segmentsIntersection")
+//             // log("segmentsIntersection")
 //             if (sectorPointInSceleton) {
-//                 // console.log("sectorPointInSceleton")
+//                 // log("sectorPointInSceleton")
 //                 if (pointInSceleton) {
-//                     // console.log("pointInSceleton", sceletonIntersection.length, sceletonIntersection.length <= 2)
-//                     // console.log(p)
+//                     // log("pointInSceleton", sceletonIntersection.length, sceletonIntersection.length <= 2)
+//                     // log(p)
 //                     return (sceletonIntersection.length <= 2)
 //                 } else {
-//                     // console.log("NOT pointInSceleton", sceletonIntersection.length, sceletonIntersection.length < 2)
-//                     // console.log(p)
+//                     // log("NOT pointInSceleton", sceletonIntersection.length, sceletonIntersection.length < 2)
+//                     // log(p)
 
 //                     return (sceletonIntersection.length < 2)
 //                 }
 
 //             } else {
-//                 // console.log("NOT sectorPointInSceleton")
+//                 // log("NOT sectorPointInSceleton")
 //                 if (pointInSceleton) {
-//                     // console.log("pointInSceleton", sceletonIntersection.length, sceletonIntersection.length <= 2)
-//                     // console.log(p)
+//                     // log("pointInSceleton", sceletonIntersection.length, sceletonIntersection.length <= 2)
+//                     // log(p)
 //                     return (sceletonIntersection.length <= 2)
 //                 } else {
-//                     // console.log("NOT pointInSceleton", sceletonIntersection.length, sceletonIntersection.length < 2)
-//                     // console.log(p)
+//                     // log("NOT pointInSceleton", sceletonIntersection.length, sceletonIntersection.length < 2)
+//                     // log(p)
 //                     return (sceletonIntersection.length < 2)
 //                 }
 
@@ -485,8 +488,8 @@ const create = data => {
 //         }
 
 //         return false
-//         // console.log(">", intrs1)
-//         // if(intrs1.length > 0) console.log(">>",s.intersect(sceleton))
+//         // log(">", intrs1)
+//         // if(intrs1.length > 0) log(">>",s.intersect(sceleton))
 
 //         // return  sector.segment.intersect(s).length == 1
 //         //         &&
@@ -498,8 +501,8 @@ const create = data => {
 //         //                     : s.intersect(sceleton).length < 2
 //         //          )
 //     })
-//     // console.log(res.length)
-//     // console.log("------------------------------------------")
+//     // log(res.length)
+//     // log("------------------------------------------")
 //     return res
 // }
 
@@ -556,7 +559,7 @@ const normalizePolygonPoints = fragments => {
 
 
 
-//     console.log("resPoints",resPoints)
+//     log("resPoints",resPoints)
 
 //     return polygon(normalizePolygonPoints(resPoints))
 
@@ -599,20 +602,20 @@ const outOfBoundary = (centroid, focus, boundary) => {
 }
 
 const adjustFocus = (centroid, focus, boundary, innerAngle) => {
-    // console.log("adjustFocus", innerAngle)
+    // log("adjustFocus", innerAngle)
     if (!innerAngle) {
         let i = 0
         let intrsct = boundaryIntersection(centroid, focus, boundary)
-        // console.log("intrsct >", intrsct)
+        // log("intrsct >", intrsct)
         while (intrsct.length > 1 && i < 3) {
             i++
             if (intrsct.length >= 2) focus = segment(intrsct[0], intrsct[1]).middle()
             intrsct = boundaryIntersection(centroid, focus, boundary)
-            // console.log("intrsct", intrsct)
+            // log("intrsct", intrsct)
         }
     } else {
         if (focus.on(boundary)) {
-            // console.log("ON BOUNDARY")
+            // log("ON BOUNDARY")
             let s = segment(centroid, focus)
             let r = ray(centroid, s.tangentInStart().rotate90CCW())
             let p = r.intersect(boundary)[0]
@@ -664,16 +667,16 @@ const newMerge = polygons => {
     let unionPoly = getUnion(polygons.map(p => p.scaled))
 
     // clusters.map(c => c.centroid).forEach( p => {
-    //     console.log(point(p).svg({strokeWidth:0.002, r:0.01}))
+    //     log(point(p).svg({strokeWidth:0.002, r:0.01}))
     // })
 
-    // console.log(unionPoly.svg({strokeWidth:0.006, opacity: 0.2}))
-    // console.log(intersectionPoly.svg({strokeWidth:0.006, opacity: 0.2, fill:"#ffff9920"}))
+    // log(unionPoly.svg({strokeWidth:0.006, opacity: 0.2}))
+    // log(intersectionPoly.svg({strokeWidth:0.006, opacity: 0.2, fill:"#ffff9920"}))
 
     let resPoints = []
 
     // polygons.map(p => p.scaled).forEach( p => {
-    //     console.log(p.svg({strokeWidth:0.002, opacity:0.3}))
+    //     log(p.svg({strokeWidth:0.002, opacity:0.3}))
     // })
 
 
@@ -724,7 +727,7 @@ const newMerge = polygons => {
         let rays = segments.map(s => ray(b.focus, s.tangentInStart().rotate90CCW()))
 
         // rays.forEach(r => {
-        //     console.log(r.svg(box(-1,-1, 1, 1),{strokeWidth:0.002}))
+        //     log(r.svg(box(-1,-1, 1, 1),{strokeWidth:0.002}))
         // })
 
         let mergedPoints = rays.map(r => {
@@ -732,7 +735,7 @@ const newMerge = polygons => {
             p = p.filter(p => p)
             if (p.length > polygons.length / 2) {
                 //     p.forEach( pp => {
-                //     console.log(pp.svg({strokeWidth:0.002, r:0.002}))
+                //     log(pp.svg({strokeWidth:0.002, r:0.002}))
                 // })
                 return point([
                     avg(p.map(d => d.x)),

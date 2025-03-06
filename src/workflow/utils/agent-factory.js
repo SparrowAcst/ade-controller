@@ -7,6 +7,10 @@ const { Agent } = require("./agent.class")
 const moment = require("moment")
 const uuid = require("uuid").v4
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
+
+
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
     DEFFERED_TIMEOUT: [1, "hours"],
@@ -23,7 +27,7 @@ const checkPretendentCriteria = (agent, user) => {
     const employeeService = agent.getEmployeeService()
     const { Key } = employeeService
     user = (user.id) ? user : employeeService.employee(user)
-    // console.log("user", user)
+    // log("user", user)
 
             
     if(agent.assignPretendent.includes("according to schedule")){
@@ -46,7 +50,7 @@ const checkPretendentCriteria = (agent, user) => {
 
 const checkPossibilityOfCreating = async (agent, key) => {
     
-    // console.log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
+    // log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
 
     if(agent.canCreate == "allways") return true
 
@@ -92,7 +96,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async create({ user, sourceKey, metadata, waitFor, release }) {
 
-        console.log(`${this.ALIAS} create...`)
+        log(`${this.ALIAS} create...`)
 
         const { Task } = this.getEmployeeService()
 
@@ -133,7 +137,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async save({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} save...`)
+        log(`${this.ALIAS} save...`)
 
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
@@ -160,7 +164,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async submit({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} submit...`)
+        log(`${this.ALIAS} submit...`)
 
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
@@ -207,7 +211,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async rollback({ user, sourceKey }) {
 
-        console.log(`${this.ALIAS} rollback...`)
+        log(`${this.ALIAS} rollback...`)
 
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
@@ -236,7 +240,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async fastForward({ user, sourceKey}) {
 
-        console.log(`${this.ALIAS} fastForward...`)
+        log(`${this.ALIAS} fastForward...`)
 
         const employeeService = this.getEmployeeService()
         const { Task, employee } = employeeService
@@ -283,7 +287,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async commit({ user, sourceKey, data, metadata }) {
 
-        console.log(`${this.ALIAS} commit...`, metadata)
+        log(`${this.ALIAS} commit...`, metadata)
 
         metadata.expiredAt = null
 
@@ -304,7 +308,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
         if (this.NEXT_AGENT) {
 
-            console.log(`${this.ALIAS} create task with ${this.NEXT_AGENT}...`)
+            log(`${this.ALIAS} create task with ${this.NEXT_AGENT}...`)
 
             await this.getAgent(this.NEXT_AGENT).lock({ user, sourceKey })
 
@@ -320,7 +324,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
 
         } else {
-            console.log(`${this.ALIAS} commit changes...`)
+            log(`${this.ALIAS} commit changes...`)
 
             result = await Task.commit({
                 user,
@@ -342,7 +346,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
     async reject({ user, sourceKey, metadata }) {
 
-        console.log(`${this.ALIAS} reject...`)
+        log(`${this.ALIAS} reject...`)
 
         if (!this.PREV_AGENT) return
 

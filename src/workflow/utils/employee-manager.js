@@ -2,6 +2,8 @@ const { remove, isFunction, flatten, findIndex, find, extend, isArray, last } = 
 const moment = require("moment")
 const uuid = require("uuid").v4
 
+const log  = require("./logger")(__filename) //(path.basename(__filename))
+
 const NodeCache = require("node-cache")
 const EMPLOYEE_CACHE = new NodeCache({
     useClones: false
@@ -57,7 +59,7 @@ const priorities = selector => {
 
 const updateEmployee = async emp => {
 
-    // console.log("updateEmployee", emp)
+    // log("updateEmployee", emp)
     if(!emp || !emp.namedAs) return
 
     EMPLOYEE_CACHE.set(emp.namedAs, emp)
@@ -100,14 +102,14 @@ const syncAltVersions = async (sourceKey, targetKey) => {
             return alts.includes(sourceKey)
         })
         
-        // console.log(emps.map(e => e.namedAs))
+        // log(emps.map(e => e.namedAs))
 
         for(let emp of emps){
             let t = find(emp.taskList, t => (t.altVersions || []).includes(sourceKey))
-            // console.log(emp, t.key)
+            // log(emp, t.key)
             if(!t) continue
             let index = findIndex((t.altVersions || []), k => k == sourceKey)
-            // console.log("index", index)
+            // log("index", index)
             if(index >= 0) {
                 t.altVersions[index] = targetKey
                 publisher.send({
@@ -120,7 +122,7 @@ const syncAltVersions = async (sourceKey, targetKey) => {
         }
 
     } catch(e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
     }    
 
 
@@ -148,7 +150,7 @@ const updateMetadata = async options => {
         ctx.task.metadata = extend({}, ctx.task.metadata, update)
         await updateEmployee(ctx.user)    
     } else {
-        console.log(`Employee Manager: No context for ${sourceKey}`)
+        log(`Employee Manager: No context for ${sourceKey}`)
     }
     
     
@@ -212,7 +214,7 @@ const updateTask = async options => {
         
         if(!noSyncAltVersions) await syncAltVersions(sourceKey, task.key)
         
-        console.log("!!!", method, sourceKey, targetKey, task)
+        log("!!!", method, sourceKey, targetKey, task)
 
         publisher = await getPublisher()
         publisher.send({
@@ -230,7 +232,7 @@ const updateTask = async options => {
 
         return task
     } catch(e) {
-        console.log(e.toString(), e.stack)
+        log(e.toString(), e.stack)
         throw e
     }    
 }
@@ -260,7 +262,7 @@ const baseBranch = async options => {
    
     let key = Key(sourceKey)    
 
-    // console.log(key.getDescription())
+    // log(key.getDescription())
 
     let versionManager = await VERSION_SERVICE.getManager({key: key.getDataKey()})
 
@@ -364,7 +366,7 @@ const merge = async options => {
     metadata = (metadata || {})
     metadata.status = "merge"
 
-    // console.log(altVersions)
+    // log(altVersions)
 
     let task = await updateTask({
         user,
@@ -426,7 +428,7 @@ const release = async options => {
     })
 
     if(!task) {
-        // console.log("RELESE: task not found: > ",user," > ",sourceKey )
+        // log("RELESE: task not found: > ",user," > ",sourceKey )
         return
     }
     
@@ -454,7 +456,7 @@ const context = async key => {
 
     let user = employes(user => user.taskList.filter(t => k.getIdentity() == Key(t.key).getIdentity()).length > 0)[0]
     
-    // console.log(user, k.getIdentity())
+    // log(user, k.getIdentity())
 
     let task = find(user ? user.taskList || [] : [], t => k.getIdentity() == Key(t.key).getIdentity())
     
@@ -471,7 +473,7 @@ const altVersions = async key => {
     let k = Key(key)
      
     let user = employes(user => user.taskList.filter(t => k.getIdentity() == Key(t.key).getIdentity()).length > 0)[0]
-    // console.log(user, k.getIdentity())
+    // log(user, k.getIdentity())
 
     if(!user) return []
     
@@ -547,7 +549,7 @@ const close = async () => {
 const init = async () => {
     
     if (!initiated){
-        console.log("Employee Manager init...")
+        log("Employee Manager init...")
         let users = await docdb.aggregate({
             db,
             collection: "ADE-SETTINGS.app-grants",
@@ -567,7 +569,7 @@ const init = async () => {
         await getPublisher()
 
         initiated = true
-        console.log("Employee Manager started")
+        log("Employee Manager started")
 
     }    
 

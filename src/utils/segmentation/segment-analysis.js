@@ -22,6 +22,8 @@ const {
 
 } = require("lodash")
 
+const log  = require("../../workflow/utils/logger")(__filename) //(path.basename(__filename))
+
 const { avg, std, quantile, confidenceInterval, min, max } = require("../stat")
 
 const Diff = require('jsondiffpatch')
@@ -102,7 +104,7 @@ const parseV2 = segmentation => {
     keys(segmentation)
         .filter( key => isArray(segmentation[key]))
         .forEach(key => {
-            // console.log(key, segmentation[key].length)
+            // log(key, segmentation[key].length)
             segments = segments.concat(segmentation[key].map(s => ({
                 type: key,
                 start: Number.parseFloat(s[0]),
@@ -292,7 +294,7 @@ const getSegmentationChart = (sa, nonConsistencyIntervals) => {
 
     let segments = JSON.parse(JSON.stringify(sa.segmentation.segments))
     
-    // console.log("segments", segments)
+    // log("segments", segments)
 
     nonConsistencyIntervals = nonConsistencyIntervals || []
 
@@ -627,7 +629,7 @@ const getMultiSegmentationChart = (users, segmentations, nonConsistencyIntervals
 const select = (sa, ...types) => {
 
     let segments = sa.segmentation.segments
-    // console.log(segments)
+    // log(segments)
     let selector = (types && isArray(types) && types.length > 0) ? (s => types.includes(s.type)) : (s => s)
     segments = sortBy(segments, s => s.start).filter(selector)
     return segments
@@ -806,7 +808,7 @@ const getSystoleDiastole = sa => {
     }
     
     if( select(sa,"S1").length > 0 && select(sa,"S2").length > 0){
-        // console.log("sa", sa)
+        // log("sa", sa)
         
         remove(sa.segmentation.segments, s => ["systole", "diastole"].includes(s.type))
 
@@ -1521,7 +1523,7 @@ const reduceEquality = (set1, set2, finder, key) => {
     while (i < set1.length) {
         
         let index = finder(set1[i], set2, key)
-        // console.log(index, set1[i], set2[index])
+        // log(index, set1[i], set2[index])
         if (index > -1) {
             set1.splice(i, 1)
             set2.splice(index, 1)
@@ -1547,7 +1549,7 @@ const findEqualSegmentIndex = (sample, sequence, type) => {
             Math.abs(sample.hf - s.hf)
         ]
         .map((v, index) => {
-            // console.log(type, index,":", v, TOLERANCE.segment[type][index], v <= TOLERANCE.segment[type][index])
+            // log(type, index,":", v, TOLERANCE.segment[type][index], v <= TOLERANCE.segment[type][index])
             return v <= TOLERANCE.segment[type][index]
         })
         .reduce((a, b) => a && b, true)
@@ -1569,7 +1571,7 @@ const getPairSegmentsDiff = (s1, s2) => {
 
         let m = matchData[key]
         diff.push(reduceEquality(m.s1, m.s2, findEqualSegmentIndex, key))
-        // console.log(key, diff)
+        // log(key, diff)
     })
 
     let segments = zipObject(CHECKED_SEGMENT_TYPES, diff)
@@ -1771,7 +1773,7 @@ module.exports = {
 
 // let segmentations = require("./segment-examples")
 
-// console.log(JSON.stringify(getSegmentsDiff(segmentations.map(s => parse(s).segments)), null, " "))
+// log(JSON.stringify(getSegmentsDiff(segmentations.map(s => parse(s).segments)), null, " "))
 
 
 // let data = [
@@ -3851,14 +3853,14 @@ module.exports = {
 // let union = Polygon.simplify(Polygon.getUnion(polygons))
 // let sbstr = Polygon.simplify(Polygon.getSubtract ([union, intersection]))
 // // let pattern = Polygon.simplify(Polygon.merge(polygons), 0.01)
-// // console.log(polygons.map(p => Polygon.getPointArray([p])))
+// // log(polygons.map(p => Polygon.getPointArray([p])))
 
 // // let sectors = Polygon.getSectors(intersection)
 
 // // let sPoly = Polygon.create(sectors.map( s => s.point))
 // // let s1Poly = Polygon.create(flatten(sectors.map( s => s.segment.vertices)))
 // let m = Polygon.simplify(Polygon.newMerge(polygons))
-// console.log(Polygon.getSVG({
+// log(Polygon.getSVG({
 //     polygons: polygons,
 //     patterns: [
 //         m
@@ -3879,8 +3881,8 @@ module.exports = {
 // let sectors = Polygon.getSectors(intersection)
 
 // sectors.forEach( sector => {
-//     // console.log(sector.point)
-//     console.log(Polygon.selectPointsWithinSector(
+//     // log(sector.point)
+//     log(Polygon.selectPointsWithinSector(
 //         Polygon.getPointArray(polygons), 
 //         sector,
 //         intersection
@@ -5296,24 +5298,24 @@ module.exports = {
   
 
 
-//   // console.log(s1.polygons[0].shapes.length, s2.polygons[0].shapes.length)
+//   // log(s1.polygons[0].shapes.length, s2.polygons[0].shapes.length)
 
-//   // console.log(findEqualPolygonIndex(s1.polygons[0].shapes[5], s1.polygons[0].shapes))
+//   // log(findEqualPolygonIndex(s1.polygons[0].shapes[5], s1.polygons[0].shapes))
 
 //   let shapes1 = s1.polygons[0].shapes //sortBy(s1.polygons[0].shapes, v => v.box.xmin)
 //   let shapes2 = s2.polygons[0].shapes //sortBy(s1.polygons[0].shapes, v => v.box.xmin)
       
 
-//   console.log("!!!!!!!!!!!!!!!!!!")
+//   log("!!!!!!!!!!!!!!!!!!")
 //   let data = getPolygonsDiff(shapes1, shapes2)
-//   console.log(data.map(d => Polygon.getPointArray([d]))) //JSON.stringify(d.box)).join("\n"))
+//   log(data.map(d => Polygon.getPointArray([d]))) //JSON.stringify(d.box)).join("\n"))
 //   // let int = getNonConsistencyIntervalsForPolygons(data)
-//   // console.log(int)
+//   // log(int)
 //   // int = mergeIntervals(int, [{start:8, end:10}])
-//   // console.log(int)
+//   // log(int)
 
 
-//   // console.log(
+//   // log(
 //   //       mergeIntervals( int, 
 //   //           getNonConsistencyIntervalsForSegments(
 //   //               getSegmentsDiff([s1.segments, s2.segments])
@@ -5326,7 +5328,7 @@ module.exports = {
 //     // let m = mergePolygons(shapes1, shapes2)
 
 //     // shapes1.forEach((p,index) => {
-//     //     console.log(Polygon.getPointArray([p]), Polygon.getPointArray([shapes2[index]]), Polygon.getPointArray([m[index]]))
+//     //     log(Polygon.getPointArray([p]), Polygon.getPointArray([shapes2[index]]), Polygon.getPointArray([m[index]]))
 //     // })
 //     // 
 
