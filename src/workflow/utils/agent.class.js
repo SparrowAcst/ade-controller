@@ -22,40 +22,52 @@ let AGENTS = {}
 
 const findPretendent = async options => {
 
-    let { user, alias, key } = options
+    let { user, alias, key, metadata } = options
 
-    // log("findPretendent options", options)
+    log("findPretendent options", options)
     const { employes, Task, Key } = EMPOLOYEE_SERVICE
 
     const agent = AGENTS[alias]
 
-    if (user && user != "AUTO_USER_NAME") {
-        // log("Direct assigment for:", user)
-        if (agent.pretendentCriteria(user)) {
-            // log("Direct:", user)
-            return user
-        } else {
-            // log(alias, ": No criteria for Direct assigement:", user)
-            return
+    const assignTo = metadata.assignTo
+    
+    if(assignTo){
+        log("assignTo", assignTo)
+        let pretendent = employes(user => user.namedAs == assignTo)[0]
+        if(pretendent && agent.pretendentCriteria(assignTo)){
+            return pretendent
         }
-
     }
+
+    // if (user && user != "AUTO_USER_NAME") {
+    //     // log("Direct assigment for:", user)
+    //     if (agent.pretendentCriteria(user)) {
+    //         // log("Direct:", user)
+    //         return user
+    //     } else {
+    //         // log(alias, ": No criteria for Direct assigement:", user)
+    //         return
+    //     }
+
+    // }
 
     // log(alias, AGENTS[alias])
 
     const ctx = await agent.read(key)
     const task = (ctx) ? ctx.task || {} : {}
 
-    let pretendent = (task.waitFor || []).pop()
-    if (pretendent) {
-        // log("Wait for", pretendent)
-        return pretendent
-    }
+    if(task.waitFor){
+        let pretendent = (task.waitFor || []).pop()
+        if (pretendent) {
+            log("Wait for", pretendent)
+            return pretendent
+        }
+    }    
 
     pretendent = sample(employes(user => agent.pretendentCriteria(user)))
 
     if (pretendent) {
-        // log("Auto:", pretendent.namedAs)
+        log("Assign by settings:", pretendent.namedAs)
         return pretendent.namedAs
     }
 
@@ -77,7 +89,8 @@ const createCommand = async (error, message, next) => {
             metadata,
             altVersions,
             waitFor,
-            release
+            release,
+            assignTo
         } = message.content
 
         const agent = AGENTS[alias]
@@ -209,6 +222,7 @@ const Agent = class {
         this.name = name
         this.FEEDBACK_DELAY = FEEDBACK_DELAY || DELAY
         this.decoration = decoration
+        this.uiPermissions = options.availableCommands
         this.state = "stopped"
         AGENTS[this.alias] = this
     }
@@ -263,11 +277,11 @@ const Agent = class {
         const {Key, employes, updateEmployee} = this.getEmployeeService()
 
         const employesList = employes()
-        log(this.ALIAS, "set task disabled: ", value)
+        // log(this.ALIAS, "set task disabled: ", value)
         for(let emp of employesList){
             (emp.taskList || []).forEach( task => {
                 if(Key(task.key).taskType() == this.ALIAS){
-                    log(emp.namedAs,">", task.key, "> disabled: ", value)
+                    // log(emp.namedAs,">", task.key, "> disabled: ", value)
                     task.disabled = value
                 }
             })
@@ -293,14 +307,21 @@ const Agent = class {
         return EMPOLOYEE_SERVICE
     }
 
-    getVersionService() {
-        return EMPOLOYEE_SERVICE.getVersionService()
+    async getVersionService() {
+        return (await EMPOLOYEE_SERVICE.getVersionService())
     }
 
     async getDataManager(key) {
 
         let taskKey = EMPOLOYEE_SERVICE.Key(key)
-        let result = await EMPOLOYEE_SERVICE.getVersionService().getManager({ key: taskKey.getDataKey() })
+        // log("key", key)
+        let result = await EMPOLOYEE_SERVICE.getVersionService()
+        // log("SERVICE", result)
+        // log("SERVICE", result.getManager)
+        result = await result.getManager({ key: taskKey.getDataKey() })
+        // log("SERVICE", result)
+        
+        // result = await EMPOLOYEE_SERVICE.getVersionService().getManager({ key: taskKey.getDataKey() })
         return result
 
     }
@@ -354,7 +375,7 @@ const Agent = class {
     async read(taskKey) {
         const { Task } = this.getEmployeeService()
         let result = await Task.context(taskKey)
-        result = extend(result, { agent: this.alias })
+        result = extend(result, { agent: this.alias, permissions: this.uiPermissions })
         return result
     }
 
@@ -417,6 +438,8 @@ const Agent = class {
 
     async reject() {}
 
+    async fastReject() {}
+
     async merge() {}
 
     async getEmployeeStats(options) {
@@ -444,7 +467,7 @@ const getEmployeeStats = async options => {
 module.exports = {
     agent: alias => AGENTS[alias],
     register: (alias, instance) => {
-        log("Register", alias, instance)
+        // log("Register", alias, instance)
 
         AGENTS[alias] = instance
     },

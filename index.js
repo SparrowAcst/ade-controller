@@ -215,6 +215,7 @@ module.exports = {
 
         router.post("/workflow/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
         router.get("/workflow/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
+        router.get("/workflow/:workflowId", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflows])
         
         router.post("/workflow/chart", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getWorkflowChart])
         
@@ -224,8 +225,12 @@ module.exports = {
 
 
         router.post("/trigger/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        router.get("/trigger/:triggerId", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
         router.get("/trigger/", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        // router.get("/trigger/:triggerId", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
+        // router.get("/trigger/", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTriggers])
         
+
         router.post("/trigger/start", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.startTrigger])
         router.post("/trigger/stop", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.stopTrigger])
         router.post("/trigger/update", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.updateTrigger])

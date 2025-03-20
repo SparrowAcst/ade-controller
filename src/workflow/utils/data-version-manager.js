@@ -14,17 +14,17 @@ const {
     isArray
 } = require("lodash")
 
-const log  = require("./logger")(__filename) //(path.basename(__filename))
+const log = require("./logger")(__filename) //(path.basename(__filename))
 
 
 const jsondiffpatch = require('jsondiffpatch')
 
 const Diff = jsondiffpatch.create({
-    objectHash: (d, index)  => {
+    objectHash: (d, index) => {
         let c = JSON.parse(JSON.stringify(d))
         delete c.grade
         return JSON.stringify(c)
-    } 
+    }
 })
 
 
@@ -63,7 +63,7 @@ const config = require("../../../.config")
 const db = config.docdb
 const configRB = config.rabbitmq
 
-const { getPublisher, getConsumer } = require("./data-version-messages")
+const { getPublisher, getConsumer, getMsConsumer } = require("./data-version-messages")
 
 const storeInDB = async event => {
     let publisher = await getPublisher()
@@ -113,7 +113,7 @@ const VersionManager = class extends EventEmitter {
         let version = find(this.versions, v => v.id == versionId)
         let data = JSON.parse(JSON.stringify(this.data))
         if (version) {
-            version.patches.forEach( patch => {
+            version.patches.forEach(patch => {
                 let p = JSON.parse(JSON.stringify(patch))
                 // log("BEFORE DATA", data.segmentation)
                 // log("BEFORE PATCH", JSON.stringify(p, null, " "))
@@ -706,8 +706,8 @@ const select = selector => {
 
 
 const getTimeline = (data, options) => {
-    
-    const {startedAt, unit, format} = options
+
+    const { startedAt, unit, format } = options
     const states = ["start", "submit", "save", "rollback", "reject"]
 
     const range = moment.range(startedAt, moment())
@@ -720,15 +720,15 @@ const getTimeline = (data, options) => {
 
     let result = {}
     states.forEach(state => {
-    
+
         // let res = data.filter(d => d.description.taskState == state)
         let res = data.filter(d => d.metadata.status == state)
 
-        result[state]  = ranges.map(r => ({
+        result[state] = ranges.map(r => ({
             date: r.start.toDate(), //format(format),
             value: res.filter(d => r.contains(moment(d.createdAt))).length
         }))
-    
+
     })
 
     return result
@@ -744,14 +744,14 @@ const getEmployeeStats = async options => {
 
     intervals = intervals || ["hour24"]
     intervals = isArray(intervals) ? intervals : [intervals]
-    intervals = intervals.filter( i => availableIntervals.includes(i))
+    intervals = intervals.filter(i => availableIntervals.includes(i))
     intervals = (intervals.length == 0) ? ["hour24"] : intervals
 
     const settings = {
         "year1": {
             priority: 1,
-            unit: "month", 
-            format: "MMM YYYY", 
+            unit: "month",
+            format: "MMM YYYY",
             startedAt: moment()
                 .subtract(1, 'years')
                 .hours(0)
@@ -761,8 +761,8 @@ const getEmployeeStats = async options => {
         },
         "month1": {
             priority: 2,
-            unit: "day", 
-            format: "MMM DD", 
+            unit: "day",
+            format: "MMM DD",
             startedAt: moment()
                 .subtract(1, 'months')
                 .hours(0)
@@ -772,8 +772,8 @@ const getEmployeeStats = async options => {
         },
         "day7": {
             priority: 3,
-            unit: "day", 
-            format: "MMM DD", 
+            unit: "day",
+            format: "MMM DD",
             startedAt: moment()
                 .subtract(7, 'days')
                 .hours(0)
@@ -783,8 +783,8 @@ const getEmployeeStats = async options => {
         },
         "hour24": {
             priority: 4,
-            unit: "hour", 
-            format: "HH:mm", 
+            unit: "hour",
+            format: "HH:mm",
             startedAt: moment()
                 .subtract(1, 'days')
                 .minutes(0)
@@ -793,8 +793,8 @@ const getEmployeeStats = async options => {
         },
         default: {
             priority: 6,
-            unit: "hour", 
-            format: "HH:mm", 
+            unit: "hour",
+            format: "HH:mm",
             startedAt: moment()
                 .subtract(1, 'days')
                 .minutes(0)
@@ -846,7 +846,7 @@ const getEmployeeStats = async options => {
         let res = {
             user: u
         }
-        intervals.forEach( i => {
+        intervals.forEach(i => {
             res[i] = getTimeline(d, settings[i])
         })
 
@@ -858,24 +858,50 @@ const getEmployeeStats = async options => {
 
 }
 
+let state = "unavailable"
+
+const isReady = consumer => new Promise((resolve, reject) => {
+    let interval = setInterval(async () => {
+        let assertion = await consumer.getStatus()
+        log.table([assertion])
+
+        if (assertion.consumerCount == 0) {
+            clearInterval(interval)
+            reject(new Error(`Version Manager Store MS not available`))
+        }
+
+        if (assertion.messageCount == 0) {
+            state = "available"
+            clearInterval(interval)
+            resolve()
+        }
+
+    }, 1000)
+
+})
+
 
 module.exports = options => {
-
-    DATAVIEW = (options || {}).dataView || DATAVIEW
-    DEFFERED_TIMEOUT = (options || {}).defferedTimeout || DEFFERED_TIMEOUT
-
-    return {
-        getManager,
-        getPublisher,
-        getConsumer,
-        select,
-        getEmployeeStats
+    try {
+        DATAVIEW = (options || {}).dataView || DATAVIEW
+        DEFFERED_TIMEOUT = (options || {}).defferedTimeout || DEFFERED_TIMEOUT
+        return {
+            getService: async () => {
+                if (state == "unavailable") {
+                    log("Check MS state...")
+                    let msConsumer = await getMsConsumer()
+                    await isReady(msConsumer)
+                }
+                return {
+                    getManager,
+                    getPublisher,
+                    getConsumer,
+                    select,
+                    getEmployeeStats
+                }
+            }
+        }
+    } catch (e) {
+        throw e
     }
-
 }
-
-
-
-
-
-

@@ -1,23 +1,17 @@
-// TODO DEFFERED_TIMEOUT
-// TODO pretendentCriteria
-
 
 const { extend, find, isArray } = require("lodash")
 const { Agent } = require("./agent.class")
 const moment = require("moment")
 const uuid = require("uuid").v4
 
-const log  = require("./logger")(__filename) //(path.basename(__filename))
-
-
+const log  = require("./logger")(__filename)
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
     DEFFERED_TIMEOUT: [1, "hours"],
-    // DEFFERED_TIMEOUT: [15, "seconds"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
-    TASK_QUOTE: 60
+    TASK_QUOTE: 5
 }
 
 const checkPretendentCriteria = (agent, user) => {
@@ -27,8 +21,6 @@ const checkPretendentCriteria = (agent, user) => {
     const employeeService = agent.getEmployeeService()
     const { Key } = employeeService
     user = (user.id) ? user : employeeService.employee(user)
-    // log("user", user)
-
             
     if(agent.assignPretendent.includes("according to schedule")){
         if(!user.schedule) return false
@@ -49,9 +41,8 @@ const checkPretendentCriteria = (agent, user) => {
 
 
 const checkPossibilityOfCreating = async (agent, key) => {
+    log(agent)
     
-    // log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
-
     if(agent.canCreate == "allways") return true
 
     if(agent.canCreate == "for free data") {
@@ -80,7 +71,6 @@ const Basic_Labeling_Agent = class extends Agent {
         
         this.ALIAS = options.ALIAS
         this.WORKFLOW_TYPE = options.WORKFLOW_TYPE
-        // this.FEEDBACK_DELAY = options.FEEDBACK_DELAY 
         this.DEFFERED_TIMEOUT = options.DEFFERED_TIMEOUT
         this.TASK_QUOTE = options.TASK_QUOTE
         this.NEXT_AGENT = options.NEXT_AGENT || (options.submitTo) ? `${options.WORKFLOW_TYPE}_${options.submitTo.split(" ").join("_")}` : undefined
@@ -94,19 +84,21 @@ const Basic_Labeling_Agent = class extends Agent {
         this.initialState = options.initialState || "start"
     }
 
-    async create({ user, sourceKey, metadata, waitFor, release }) {
+    async create({ user, sourceKey, metadata, waitFor, release, initialState, assignTo }) {
 
         log(`${this.ALIAS} create...`)
+        log({ initialState, assignTo })
 
         const { Task } = this.getEmployeeService()
 
         await super.create({
             user,
+            assignTo,
             key: sourceKey,
             initialState: this.initialState,
             metadata: extend({}, metadata, {
                 task: this.ALIAS,
-                status: "start",
+                status: this.initialState,
                 decoration: this.decoration
             }),
             waitFor,
@@ -138,6 +130,7 @@ const Basic_Labeling_Agent = class extends Agent {
     async save({ user, sourceKey, data, metadata }) {
 
         log(`${this.ALIAS} save...`)
+        log("metadata", metadata)
 
         const employeeService = this.getEmployeeService()
         const { Task } = employeeService
@@ -187,8 +180,6 @@ const Basic_Labeling_Agent = class extends Agent {
             })
         })
 
-        // ctx = await this.read(result.key)    
-
         this.getAgent("Deferred").send({
             agent: this.ALIAS,
             expiredAt: moment(new Date()).add(...this.DEFFERED_TIMEOUT).toDate(),
@@ -225,13 +216,13 @@ const Basic_Labeling_Agent = class extends Agent {
         let result = await Task.rollback({
             user,
             sourceKey,
-            metadata: {
+            metadata: extend({}, ctx.task.metadata, {
                 task: this.ALIAS,
                 initiator,
                 employee: user,
                 status: "rollback",
                 decoration: this.decoration
-            }
+            })
         })
 
         return result
@@ -266,21 +257,13 @@ const Basic_Labeling_Agent = class extends Agent {
                 user,
                 data: ctx.data,
                 sourceKey,
-                metadata: {
+                metadata: extend({}, ctx.task.metadata, {
                     task: this.ALIAS,
                     employee: user,
                     status: "commit",
                     decoration: this.decoration
-                }
-            }
-
-        // {
-        //     user,
-        //     sourceKey,
-        //     data: ctx.data,
-        //     metadata: ctx.task.metadata 
-        // }
-        )        
+                })
+        })        
 
     }
 
@@ -421,6 +404,8 @@ const Initial_Task_Agent = class extends Basic_Labeling_Agent {
 
     async create({ schema, dataId, metadata }){
         
+        log(">>>", this.ALIAS)
+
         const { Task, Key } = this.getEmployeeService()
 
         let key = Key()
@@ -428,15 +413,15 @@ const Initial_Task_Agent = class extends Basic_Labeling_Agent {
                         workflowType: this.WORKFLOW_TYPE,
                         workflowId: uuid(),
                         taskType: this.ALIAS,
-                        // taskId: uuid(),
-                        // taskState: "start",
                         schema,
                         dataCollection: this.dataCollection,
                         dataId,
                         savepointCollection: this.savepointCollection
                     })
                     .get()
-       
+        
+        log("!!!", key)
+
         await super.create({
             sourceKey: key,
             metadata: extend({}, metadata, {
@@ -457,15 +442,18 @@ const Intermediate_Task_Agent = class extends Basic_Labeling_Agent {
 const Final_Task_Agent = class extends Basic_Labeling_Agent {
 }
 
-const Cross_Labeling_Agent = require("./cross-labeling-agent")
+const Cross_Labeling_Pipeline_Agent = require("./cross-labeling-pipeline-agent")
+const Cross_Merge_Pipeline_Agent = require("./cross-merge-pipeline-agent")
 const Cross_Merge_Agent = require("./cross-merge-agent")
+
 
 const AgentFactory = {
     initial: Initial_Task_Agent,
     intermediate: Intermediate_Task_Agent,
     final: Final_Task_Agent,
-    cross: Cross_Labeling_Agent,
-    merge: Cross_Merge_Agent
+    cross: Cross_Labeling_Pipeline_Agent,
+    merge: Cross_Merge_Pipeline_Agent,
+    CMO_merge: Cross_Merge_Agent
 }
 
 

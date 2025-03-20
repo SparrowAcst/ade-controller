@@ -184,6 +184,7 @@ const fastForward = async (req, res) => {
     }
 }
 
+
 const getEmployes = async (req, res) => {
     try {
         const employeeManager = await EMPLOYEE_MANAGER()
@@ -285,9 +286,10 @@ const getWorkflowChart = async (req, res) => {
 const getWorkflows = async (req, res) => {
     
     try {
-
+        let workflowName = req.params.workflowId
+        
         const workflow = await WORKFLOW()
-        let result = workflow.selectWorkflow()
+        let result = workflow.selectWorkflow((workflowName) ? t => t.options.name == workflowName : t => true)
         res.send(result)
 
     } catch (e) {
@@ -356,8 +358,8 @@ const stopWorkflow = async (req, res) => {
 const getTriggers = async (req, res) => {
     
     try {
-
-        let result = await TRIGGERS.getTriggersInfo()
+        let triggerId = req.params.triggerId
+        let result = await TRIGGERS.getTriggersInfo((triggerId) ? t => t.id == triggerId : t => true)
         res.send(result)
 
     } catch (e) {

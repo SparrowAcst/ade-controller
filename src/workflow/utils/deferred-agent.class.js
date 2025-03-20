@@ -130,6 +130,7 @@ const Deferred_Agent = class {
     constructor() {
         // this.WORKFLOW_TYPE = "Basic_Labeling"
         this.ALIAS = "Deferred"
+        this.state = "stopped"
         register(this.ALIAS, this)
     }
 
@@ -162,6 +163,7 @@ const Deferred_Agent = class {
                 .start()
         }        
         
+        this.state = "available"
     }
 
     send(message) {

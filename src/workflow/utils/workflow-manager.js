@@ -57,13 +57,13 @@ const Workflow = class {
         log(`Init workflow: ${this.options.WORKFLOW_TYPE}...`)
         this.agents = []
         for (let agentOptions of this.options.agents) {
-            log("agentOptions", agentOptions)
+            // log("agentOptions", agentOptions)
             let agent = createAgent(extend({}, agentOptions, { WORKFLOW_TYPE: this.options.WORKFLOW_TYPE }))
             AGENTS[agent.alias] = agent
             this.agents.push(agent)
-            log(`Create agent: ${agent.alias}`)
+            // log(`Create agent: ${agent.alias}`)
         }
-
+        // log.table(this.agents.map(a => a.alias))
         this.options.log = this.options.log || []
         this.options.log = (isArray(this.options.log)) ? this.options.log : [this.options.log]
 
@@ -74,9 +74,12 @@ const Workflow = class {
     async start() {
         log(`Start workflow: ${this.options.WORKFLOW_TYPE}...`)
         for (let agent of this.agents) {
-            log(`Start agent: ${agent.alias}`)
+            // log(`Start agent: ${agent.alias}`)
             await agent.start()
         }
+        
+        // log.table(this.agents.map(a => ({ agent: a.alias, state: a.state})))
+
         this.options.state = "available"
         this.options.updatedAt = new Date()
 
@@ -84,7 +87,7 @@ const Workflow = class {
             date: new Date(),
             message: `Workflow ${this.options.WORKFLOW_TYPE} start successfuly.`
         })
-        log(last(this.options.log))
+        // log(last(this.options.log))
 
         await storeInDB(this.options)
         // log(`Workflow: ${this.options.WORKFLOW_TYPE} is available`)
@@ -93,16 +96,19 @@ const Workflow = class {
     async stop() {
         log(`Stop workflow: ${this.options.WORKFLOW_TYPE}...`)
         for (let agent of this.agents) {
-            log(`Stop agent: ${agent.alias}`)
+            // log(`Stop agent: ${agent.alias}`)
             await agent.stop()
         }
+
+        // log.table(this.agents.map(a => ({ agent: a.alias, state: a.state})))
+
         this.options.state = "stopped"
         this.options.updatedAt = new Date()
         this.options.log.push({
             date: new Date(),
             message: `Workflow ${this.options.WORKFLOW_TYPE} stop successfuly.`
         })
-        log(last(this.options.log))
+        // log(last(this.options.log))
 
         await storeInDB(this.options)
         // log(`Workflow: ${this.options.WORKFLOW_TYPE} is stopped`)    
@@ -173,7 +179,7 @@ const init = async () => {
         AGENTS = {}
         WORKFLOWS = {}
 
-        log(JSON.stringify(workflows, null, " "))
+        // log(JSON.stringify(workflows, null, " "))
 
         for (const workflow of workflows) {
             workflowAlias = workflow.name.split(" ").join("_")
@@ -191,8 +197,10 @@ const init = async () => {
         log("Start: ", deferredAgent.ALIAS)
         await deferredAgent.start()
 
-        log(`WORKFLOWS:\n${selectWorkflow().map(w => w.options.WORKFLOW_TYPE + ": " + w.options.state).join("\n")} `)
-        log(`AGENTS:\n${select().map(a => a.ALIAS).join("\n")}`)
+        log(`WORKFLOWS:`) //\n${selectWorkflow().map(w => w.options.WORKFLOW_TYPE + ": " + w.options.state).join("\n")} `)
+        log.table(selectWorkflow().map(w => ({workflow: w.options.WORKFLOW_TYPE, state: w.options.state})))
+        log(`AGENTS:`) //\n${select().map(a => a.ALIAS).join("\n")}`)
+        log.table(select().map(a => ({ agent:a.ALIAS, state: a.state})))
         log("Workflow Manager is available")
     }
 

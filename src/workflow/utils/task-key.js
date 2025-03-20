@@ -15,6 +15,7 @@ const parseKey = taskKey => {
     // ] = taskKey.split("."));
 
     const fields = [
+        "user",
         "workflowType",
         "workflowId",
         "taskType",
@@ -38,15 +39,43 @@ const parseKey = taskKey => {
 }
 
 const buildKey = d => {
-    return `${d.workflowType}.${d.workflowId}.${d.taskType}.${d.taskId}.${d.taskState}.${d.schema}.${d.dataCollection}.${d.dataId}.${d.savepointCollection}.${d.versionId}`
+    
+    return [
+        d.user,
+        d.workflowType,
+        d.workflowId,
+        d.taskType,
+        d.taskId,
+        d.taskState,
+        d.schema,
+        d.dataCollection,
+        d.dataId,
+        d.savepointCollection,
+        d.versionId
+    ].join(".")
+    // return `${d.user}.${d.workflowType}.${d.workflowId}.${d.taskType}.${d.taskId}.${d.taskState}.${d.schema}.${d.dataCollection}.${d.dataId}.${d.savepointCollection}.${d.versionId}`
 }
 
 const buildVersionManagerKey = d => {
-    return `${d.schema}.${d.dataCollection}.${d.dataId}.${d.savepointCollection}`
+    return [
+        d.schema,
+        d.dataCollection,
+        d.dataId,
+        d.savepointCollection,
+    ].join(".")
+
+    // return `${d.schema}.${d.dataCollection}.${d.dataId}.${d.savepointCollection}`
 }
 
 const identity = d => {
-    return `${d.workflowType}.${d.workflowId}.${d.taskType}.${d.taskId}`
+    return [ 
+        d.workflowType,
+        d.workflowId,
+        d.taskType,
+        d.taskId,
+    ].join(".")
+
+    // return `${d.workflowType}.${d.workflowId}.${d.taskType}.${d.taskId}`
 }
 
 
@@ -60,6 +89,14 @@ const TaskKey = class {
 
     getDescription(){
         return this.description
+    }
+
+    user(value){
+        if(value){
+            this.description.user = value
+            return this
+        }
+        return this.description.user
     }
 
     workflowType(value){
@@ -166,6 +203,8 @@ const TaskKey = class {
 }
 
 module.exports = key => {
-    key = key || "....."
+    key = key || "......"
+    key = key || "//////"
+    
     return new TaskKey(key)
 }

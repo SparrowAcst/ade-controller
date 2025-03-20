@@ -26,7 +26,7 @@ const init = async collections => {
 
     log(`Init preloaded cache:\n${JSON.stringify(db, null, " ")}`)
     COLLECTIONS = collections || COLLECTIONS
-    log(COLLECTIONS)
+    // log(COLLECTIONS)
 
     let cacheProperties = keys(COLLECTIONS)
 
@@ -36,7 +36,7 @@ const init = async collections => {
 
         if (COLLECTIONS[cacheProperty].calculate && isFunction(COLLECTIONS[cacheProperty].calculate )){
             CACHE[cacheProperty] = COLLECTIONS[cacheProperty].calculate
-            log(`Set calculable ${cacheProperty}`) // as ${CACHE[cacheProperty].toString()}`)
+            // log(`Set calculable ${cacheProperty}`) // as ${CACHE[cacheProperty].toString()}`)
             res.push(`Set calculable ${cacheProperty}`) // as ${CACHE[cacheProperty].toString()}`)
             continue
         }
@@ -58,9 +58,16 @@ const init = async collections => {
             CACHE[cacheProperty] = CACHE[cacheProperty].map(d =>  COLLECTIONS[cacheProperty].mapper(d))
         }
         
-        log(`Load ${CACHE[cacheProperty].length} items from ${normalizeCollectionName(COLLECTIONS[cacheProperty].collection)} as ${cacheProperty}`)
+        // log(`Load ${CACHE[cacheProperty].length} items from ${normalizeCollectionName(COLLECTIONS[cacheProperty].collection)} as ${cacheProperty}`)
         res.push(`Load ${CACHE[cacheProperty].length} items from ${normalizeCollectionName(COLLECTIONS[cacheProperty].collection)} as ${cacheProperty}`)
     }
+
+    log.table(cacheProperties.map( prop => ({
+        alias: prop,
+        collection: (!!COLLECTIONS[prop].calculate && isFunction(COLLECTIONS[prop].calculate)) ? '' : COLLECTIONS[prop].collection,
+        items: (!!COLLECTIONS[prop].calculate && isFunction(COLLECTIONS[prop].calculate)) ? '' : CACHE[prop].length,
+        calculable: !!COLLECTIONS[prop].calculate && isFunction(COLLECTIONS[prop].calculate)
+    })))
 
     return res.join("\n")
 

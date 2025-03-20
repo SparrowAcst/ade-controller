@@ -44,10 +44,10 @@ const state = agent => {
       title: "Number of alternatives",
       value: d => d
     },  
-    "maxIteration": {
-      title: "Number of iterations",
-      value: d => d
-    }  
+    // "maxIteration": {
+    //   title: "Number of iterations",
+    //   value: d => d
+    // }  
   }
 
   let result = keys(fields)
@@ -63,14 +63,15 @@ const state = agent => {
 }
 
 module.exports = data => {
-  log(data)
+  // log(data)
   let text = plantUml(
     package(
       data.name,
       flatten(
         data.agents.map( agent => [
           link(agent.name, agent.submitTo, "-->", "submit"),
-          (agent.rejectTo) ? link(agent.name, agent.rejectTo, "-u->", "reject") : "",
+          (agent.rejectTo) ? link(agent.name, agent.rejectTo, "-->", "reject(soft)") : "",
+          (agent.fastRejectTo) ? link(agent.name, agent.fastRejectTo, "-u->", "reject(force)") : "",
           (agent.initial) ? link("", agent.name, "-->", "emit") : "",
         ])
       ).concat(
@@ -80,6 +81,6 @@ module.exports = data => {
       ).join("\n")  
     ) + ((data.description) ? `\n${data.name}: ${JSON.stringify(data.description)}` : "")
   )
-  log(text)
+  // log(text)
   return getUrl(text)  
 }

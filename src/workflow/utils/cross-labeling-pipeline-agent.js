@@ -6,11 +6,12 @@ const {
     uniqBy, 
     flatten, 
     keys, 
-    remove 
+    remove,
+    nth 
 } = require("lodash")
 
-const log  = require("./logger")(__filename) //(path.basename(__filename))
 
+const log = require("./logger")(__filename)
 
 const { Agent } = require("./agent.class")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
@@ -19,14 +20,11 @@ const segmentationAnalysis = require("../../utils/segmentation/segment-analysis"
 const moment = require("moment")
 const uuid = require("uuid").v4
 
-
 const dataDiff = require("../../utils/segmentation/data-diff")
-
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
     DEFFERED_TIMEOUT: [1, "hours"],
-    // DEFFERED_TIMEOUT: [15, "seconds"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
@@ -39,8 +37,6 @@ const checkPretendentCriteria = (agent, user) => {
     const employeeService = agent.getEmployeeService()
     const { Key } = employeeService
     user = (user.id) ? user : employeeService.employee(user)
-    // log("user", user)
-
 
     if (agent.assignPretendent.includes("according to schedule")) {
         if (!user.schedule) return false
@@ -62,8 +58,6 @@ const checkPretendentCriteria = (agent, user) => {
 
 const checkPossibilityOfCreating = async (agent, key) => {
 
-    // log("checkPossibilityOfCreating", agent.alias, agent.canCreate, key)
-
     if (agent.canCreate == "allways") return true
 
     if (agent.canCreate == "for free data") {
@@ -74,44 +68,53 @@ const checkPossibilityOfCreating = async (agent, key) => {
         return `Task ${key} cannot be created because the data is locked by another task.`
     }
 
-    return false
+    return `Task ${key} cannot be created because the canCreate settings is undefined or not in available values`
 
 }
 
 
-const findPretendents = async (options, agent) => {
+const findPretendent = async (options, agent, altVersions) => {
 
-    let { user, alias } = options
-
-    log("agent.requiredExperts", agent.requiredExperts)
-
-    altCount = agent.altCount
+    const { alias } = options
     const { employes, Task, Key } = agent.getEmployeeService()
-    
-    let pretendents = []
-    // let reqCount = 0
+    const collaborators = altVersions.map(v => Key(v).user())
+    log("Collaborators:", collaborators)
 
-    if(agent.requiredExperts){
-        // reqCount = agent.requiredExperts.count
-        pretendents = employes(user => {
-            // log(user.namedAs, agent.requiredExperts.includes(user.namedAs) && agent.pretendentCriteria(user))
+    if (agent.requiredExperts) {
+        let pretendents = employes(user => {
             return agent.requiredExperts.experts.includes(user.namedAs) && agent.pretendentCriteria(user)
         })
+        let notInvolved = pretendents.filter(p => !collaborators.includes(p.namedAs))
+        let involved = collaborators.filter(c => agent.requiredExperts.experts.includes(c))
+        log("REQUIRED Pretendents:", pretendents)
+        log("REQUIRED notInvolved:", notInvolved)
+        log("REQUIRED involved:", involved)
+        log("REQUIRED", involved.length, agent.requiredExperts.count)
+
+        if (involved.length < agent.requiredExperts.count) {
+            if (notInvolved.length > 0) {
+                return notInvolved[0]
+            } else if ((agent.altCount - collaborators.length) <= (agent.requiredExperts.count - involved.length)) {
+                return
+            }
+        }
+
     }
 
-    pretendents = sampleSize(pretendents, agent.requiredExperts.count)
+    let pretendents = sampleSize(
+        employes(user => !agent.requiredExperts.experts.includes(user.namedAs) &&
+            agent.pretendentCriteria(user) &&
+            !collaborators.includes(user.namedAs)
+        ), 1)
 
-    log("Required experts:", agent.requiredExperts, pretendents.length, pretendents.map(p => p.namedAs))
+    log("Pretendents:", pretendents)
 
-    pretendents = pretendents.concat(sampleSize(employes(user => !agent.requiredExperts.experts.includes(user.namedAs) && agent.pretendentCriteria(user)), altCount - agent.requiredExperts.count))    
-
-    if (pretendents.length == altCount) {
-        return pretendents //.map(p => p.namedAs)
+    if (pretendents.length > 0) {
+        return pretendents[0]
     }
 
-    return []
+    return
 }
-
 
 const createCommand = agent => async (error, message, next) => {
 
@@ -119,53 +122,34 @@ const createCommand = agent => async (error, message, next) => {
 
         // log("message.content", message.content)
 
-        const { employes, Task, Key, updateEmployee } = agent.getEmployeeService()
+        const { employes, Task, Key, updateEmployee, getVersionService } = agent.getEmployeeService()
 
         let {
             alias,
             key,
             user,
             initialStatus,
+            altVersions,
             metadata,
             waitFor,
             release
 
         } = message.content
 
-        // log("message.content", message.content)
-
-        // log("createCommand initialStatus", initialStatus)
         initialStatus = initialStatus || "start"
-        // const agent = AGENTS[alias]
+        altVersions = altVersions || []
 
-        let isPossible = await agent.possibilityOfCreating(agent, key)
-        if (isPossible != true) {
-            log(`Impossble of creation task: ${key}`)
-            // log(isPossible)
-            agent.sendToNoCreate(extend({}, { data: message.content, reason: isPossible }))
-            next()
-            return
-        }
+        let receivedAltVersions = JSON.parse(JSON.stringify(altVersions))
 
-        // log("CREATE COMMAND", key)
-        let pretendents = await findPretendents(message.content, agent)
+        let pretendent = await findPretendent(message.content, agent, altVersions)
 
-        metadata = extend({}, metadata, {
-            task: agent.ALIAS,
-            status: "start",
-            decoration: agent.decoration
-        })
+        if (pretendent) {
 
-        if (pretendents.length == agent.altCount) {
+            if (Key(key).versionId() == "undefined") {
 
-            
-            if(Key(key).versionId() == "undefined"){
-                log("key:", key)
-                log("Key(key).versionId():", Key(key).versionId())
-            
                 let baseBranch = await Task.baseBranch({
                     user: "ADE",
-                    sourceKey: Key(key).taskState(initialStatus).get(),
+                    sourceKey: Key(key).user("ADE").taskState(initialStatus).get(),
                     metadata: {
                         task: agent.alias,
                         status: "baseBranch",
@@ -173,42 +157,40 @@ const createCommand = agent => async (error, message, next) => {
                     }
                 })
                 key = Key(key).versionId(baseBranch.id).get()
-            
-            }
-
-
-            let altVersions = []
-            for (let pretendent of pretendents) {
-                let task = await Task.create({
-                    user: pretendent.namedAs,
-                    alias,
-                    sourceKey: key,
-                    iteration: 0,
-                    targetKey: Key(key)
-                        .agent(alias)
-                        .taskId(uuid())
-                        .taskState(initialStatus)
-                        .get(),
-                    metadata,
-                    waitFor
-                })
-
-                pretendent.temp = task.key
-                altVersions.push(task.key)
-                log(`${Key(task.key).agent()} > ${Key(task.key).get()} > ${pretendent.namedAs}`)
 
             }
 
-            for (let pretendent of pretendents) {
-                let f = find(pretendent.taskList, t => {
-                    return t.key == pretendent.temp
-                })
-                if (f) {
-                    f.altVersions = altVersions.map(d => d)
-                }
-                delete pretendent.temp
-                await updateEmployee(pretendent)
+
+            metadata = extend({}, metadata, {
+                task: agent.ALIAS,
+                baseKey: metadata.baseKey || key,
+                status: initialStatus,
+                decoration: agent.decoration
+            })
+
+            let task = await Task.create({
+                user: pretendent.namedAs,
+                alias,
+                sourceKey: metadata.baseKey,
+                iteration: 0,
+                altVersions,
+                targetKey: Key(metadata.baseKey)
+                    .user(pretendent.namedAs)
+                    .agent(alias)
+                    .taskId(uuid())
+                    .taskState(initialStatus)
+                    .get(),
+                metadata,
+                waitFor
+            })
+
+            let f = find(pretendent.taskList, t => t.key == task.key)
+
+            if (f) {
+                f.altVersions = (altVersions.includes(task.key)) ? altVersions : altVersions.concat([task.key])
             }
+
+            await updateEmployee(pretendent)
 
         } else {
 
@@ -224,7 +206,6 @@ const createCommand = agent => async (error, message, next) => {
             await Task.release(release)
         }
 
-
         next()
 
     } catch (e) {
@@ -237,11 +218,11 @@ const hasDataInconsistency = dataDiff => dataDiff.length > 0
 
 const hasSegmentationInconsistency = diff => {
     return (diff) ? diff
-            .map(diff => keys(diff)
-                .map(key => diff[key].length > 0)
-                .reduce((a, b) => a || b, false)
-            )
-            .reduce((a, b) => a || b, false) : false
+        .map(diff => keys(diff)
+            .map(key => diff[key].length > 0)
+            .reduce((a, b) => a || b, false)
+        )
+        .reduce((a, b) => a || b, false) : false
 }
 
 const hasPolygonsInconsistency = diff => diff.length > 0
@@ -251,7 +232,7 @@ const getPolygonsInconsistency = polygonArray => {
 
     let result = []
 
-    polygonArray[0].forEach( pa => {
+    polygonArray[0].forEach(pa => {
 
         let polygonSet = []
         polygonArray.forEach(p => {
@@ -263,13 +244,9 @@ const getPolygonsInconsistency = polygonArray => {
         result.push(
             segmentationAnalysis
             .getPolygonsDiff(polygonSet)
-            // .map(d => !!d)
-            // .reduce((a, b) => a || b, false)
         )
 
     })
-
-    // result = result.reduce((a, b) => a || b, false)
 
     return result
 
@@ -299,7 +276,7 @@ const mergePolygons = polygonArray => {
 }
 
 
-const Cross_Labeling_Agent = class extends Agent {
+const Cross_Labeling_Pipeline_Agent = class extends Agent {
 
     constructor(options) {
 
@@ -313,11 +290,11 @@ const Cross_Labeling_Agent = class extends Agent {
 
         this.ALIAS = options.ALIAS
         this.WORKFLOW_TYPE = options.WORKFLOW_TYPE
-        // this.FEEDBACK_DELAY = options.FEEDBACK_DELAY 
         this.DEFFERED_TIMEOUT = options.DEFFERED_TIMEOUT
         this.TASK_QUOTE = options.TASK_QUOTE
         this.NEXT_AGENT = options.NEXT_AGENT || (options.submitTo) ? `${options.WORKFLOW_TYPE}_${options.submitTo.split(" ").join("_")}` : undefined
         this.PREV_AGENT = options.PREV_AGENT || (options.rejectTo) ? `${options.WORKFLOW_TYPE}_${options.rejectTo.split(" ").join("_")}` : undefined
+        this.FAST_REJECT_AGENT = options.FAST_REJECT_AGENT || (options.fastRejectTo) ? `${options.WORKFLOW_TYPE}_${options.fastRejectTo.split(" ").join("_")}` : undefined
         this.dataCollection = options.dataCollection
         this.savepointCollection = options.savepointCollection
         this.decoration = options.decoration
@@ -328,48 +305,25 @@ const Cross_Labeling_Agent = class extends Agent {
         this.maxIteration = options.maxIteration || 2
         this.initialStatus = options.initialStatus || "start"
         this.requiredExperts = options.requiredExperts || { count: 0, experts: [] }
-        // log("Cross_Labeling_Agent", this)
-    }
 
-
-    async getUiPermissions(task){
-
-        let res = this.uiPermissions
-    
     }
 
     async start() {
 
-        // if (!EMPOLOYEE_SERVICE) {
-        //     EMPOLOYEE_SERVICE = await EmployeeManager()
-        // }
-
-        // log("CONSUMER_OPTIONS", this.CONSUMER_OPTIONS)
-        // log("FEEDBACK_OPTIONS", this.FEEDBACK_OPTIONS)
-        // log("SCHEDULER_OPTIONS", this.SCHEDULER_OPTIONS)
-        // log("NO_CREATE_OPTIONS", this.NO_CREATE_OPTIONS)
-
         this.setTaskDisabled(false)
 
         this.consumer = await AmqpManager.createConsumer(this.CONSUMER_OPTIONS)
-
-        // log(this.FEEDBACK_OPTIONS)
-
         this.feedbackPublisher = await AmqpManager.createPublisher(this.FEEDBACK_OPTIONS)
         this.feedbackPublisher.use(Middlewares.Json.stringify)
-
         this.schedulerPublisher = await AmqpManager.createPublisher(this.SCHEDULER_OPTIONS)
         this.schedulerPublisher.use(Middlewares.Json.stringify)
-
         this.noCreatePublisher = await AmqpManager.createPublisher(this.NO_CREATE_OPTIONS)
         this.noCreatePublisher.use(Middlewares.Json.stringify)
-
 
         await this.consumer
             .use(Middlewares.Json.parse)
             .use(createCommand(this))
             .use(Middlewares.Error.Log)
-            // .use(Middlewares.Error.BreakChain)
             .use((err, msg, next) => {
                 msg.ack()
             })
@@ -379,13 +333,11 @@ const Cross_Labeling_Agent = class extends Agent {
 
     }
 
-    async create({ user, sourceKey, metadata, waitFor, release }) {
+    async create({ user, sourceKey, metadata, waitFor, altVersions, release }) {
 
         log(`${this.ALIAS} create...`, this.initialStatus)
 
         const { Task, Key } = this.getEmployeeService()
-
-        // log(Key(sourceKey).getDescription())
 
         await super.create({
             user,
@@ -396,8 +348,9 @@ const Cross_Labeling_Agent = class extends Agent {
                 status: "start",
                 decoration: this.decoration
             }),
+            altVersions,
             altCount: this.altCount,
-            waitFor,
+            waitFor: null,
             release
         })
 
@@ -412,6 +365,7 @@ const Cross_Labeling_Agent = class extends Agent {
         let res = await checkPossibilityOfCreating(this, key)
         return res
     }
+
 
     uiPermissions() {
         return this.uiPermissions
@@ -428,7 +382,8 @@ const Cross_Labeling_Agent = class extends Agent {
             return dataDiff.getDifference(result.data, alt.data)
         })
 
-        let uiPermissions = this.uiPermissions
+        let uiPermissions = JSON.parse(JSON.stringify(this.uiPermissions))
+       
         if(altVersions.length > 1){
             remove(uiPermissions, p => p == "reject")
         }
@@ -437,7 +392,7 @@ const Cross_Labeling_Agent = class extends Agent {
             agent: this.alias,
             altVersions,
             dataDiff: uniqBy(flatten(diffs.map(d => d.formatted.map(d => d.key)))),
-            uiPermissions //: this.uiPermissions
+            permissions: uiPermissions
         })
 
         return result
@@ -453,12 +408,10 @@ const Cross_Labeling_Agent = class extends Agent {
             .map(a => a.data.segmentation)
             .map(d => (d) ? segmentationAnalysis.parse(d) : [])
 
-        // log("PLYGONNS",altSegmentations.map( s => s.polygons))
-
         if (altSegmentations.length > 0) {
-            result.diff = segmentationAnalysis.getSegmentsDiff(altSegmentations.map( s => s.segments))
-            result.polygonsDiff = getPolygonsInconsistency(altSegmentations.map( s => s.polygons))//segmentationAnalysis.getPolygonsDiff(altSegmentations.map( s => s.polygons))
-            // log("result.polygonsDiff", result.polygonsDiff)
+            result.diff = segmentationAnalysis.getSegmentsDiff(altSegmentations.map(s => s.segments))
+            result.polygonsDiff = getPolygonsInconsistency(altSegmentations.map(s => s.polygons)) //segmentationAnalysis.getPolygonsDiff(altSegmentations.map( s => s.polygons))
+
             let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
 
             if (result && result.charts) {
@@ -472,7 +425,7 @@ const Cross_Labeling_Agent = class extends Agent {
         return result
     }
 
-    async hasInconsistency(sourceKey){
+    async hasInconsistency(sourceKey) {
         let ctx = await this.read(sourceKey)
         let segCtx = await this.getSegmentationAnalysis(sourceKey)
         let di = hasDataInconsistency(ctx.dataDiff)
@@ -496,7 +449,7 @@ const Cross_Labeling_Agent = class extends Agent {
             iteration: ctx.task.iteration,
             data,
             altVersions: ctx.task.altVersions,
-            metadata: extend({}, metadata, {
+            metadata: extend({}, ctx.task.metadata, metadata, {
                 task: this.ALIAS,
                 initiator,
                 employee: user,
@@ -526,7 +479,7 @@ const Cross_Labeling_Agent = class extends Agent {
                 iteration: ctx.task.iteration + 1,
                 altVersions: ctx.task.altVersions,
                 defferedTimeout: this.DEFFERED_TIMEOUT,
-                metadata: extend({}, metadata, {
+                metadata: extend({}, ctx.task.metadata, metadata, {
                     task: this.ALIAS,
                     initiator,
                     employee: user,
@@ -536,8 +489,6 @@ const Cross_Labeling_Agent = class extends Agent {
                 })
             })
 
-            // ctx = await this.read(result.key)    
-
             this.getAgent("Deferred").send({
                 agent: this.ALIAS,
                 expiredAt: moment(new Date()).add(...this.DEFFERED_TIMEOUT).toDate(),
@@ -545,7 +496,7 @@ const Cross_Labeling_Agent = class extends Agent {
                     user,
                     sourceKey: result.key,
                     data: data,
-                    metadata: extend({}, result.metadata, {
+                    metadata: extend({}, result.metadata, metadata, {
                         task: this.ALIAS,
                         initiator,
                         employee: user,
@@ -580,7 +531,7 @@ const Cross_Labeling_Agent = class extends Agent {
             sourceKey,
             iteration: ctx.task.iteration,
             altVersions: ctx.task.altVersions,
-            metadata: extend({}, metadata, {
+            metadata: extend({}, ctx.task.metadata, metadata, {
                 task: this.ALIAS,
                 initiator,
                 employee: ctx.user.namedAs,
@@ -601,7 +552,7 @@ const Cross_Labeling_Agent = class extends Agent {
         const { Task, employee } = employeeService
 
         const emp = employee(user)
-        
+
         let f = find(emp.taskList || [], t => t.key == sourceKey)
         if (!f) {
             return
@@ -614,19 +565,19 @@ const Cross_Labeling_Agent = class extends Agent {
         this.getAgent("Deferred").send({
             agent: this.ALIAS,
             ignore: sourceKey
-        })   
-    
+        })
+
         await this.commit({
             user: user,
             data: ctx.data,
             sourceKey,
             altVersions: ctx.task.altVersions,
-            metadata: {
+            metadata: extend({}, ctx.task.metadata, {
                 task: this.ALIAS,
                 employee: user,
                 status: "commit",
                 decoration: this.decoration
-            }
+            })
         })
     }
 
@@ -638,114 +589,93 @@ const Cross_Labeling_Agent = class extends Agent {
         const employeeService = this.getEmployeeService()
         const { Task, Key, updateEmployee } = employeeService
 
-        
+
         let ctx = await this.read(sourceKey)
-        // let segCtx = await this.getSegmentationAnalysis(sourceKey)
 
-        // log(ctx.altVersions)
-
-        let isPossibleMerge = ctx.altVersions
-            .map(a => Key(a.task.key).taskState())
+        let isPossibleMerge = ctx.task.altVersions
+            .map(a => Key(a).taskState())
             .filter(s => s == "submit").length == this.altCount
 
-        // log(ctx.altVersions
-        //     .map(a => Key(a.task.key).taskState())
-        //     .filter(s => s == "submit"), this.altCount, isPossibleMerge)
-
         if (!isPossibleMerge) {
-            await Task.updateMetadata({ sourceKey, update: { subState: "Merger expected" } })
-            return
-        }
 
-        // let hasDataInconsistency = ctx.dataDiff.length > 0
-
-        // let hasSegmentationInconsistency = (segCtx.diff) ?
-        //     segCtx.diff
-        //     .map(diff => keys(diff)
-        //         .map(key => diff[key].length > 0)
-        //         .reduce((a, b) => a || b, false)
-        //     )
-        //     .reduce((a, b) => a || b, false) :
-        //     false
-
-
-        // if (hasDataInconsistency || hasSegmentationInconsistency) {
-        const incst =await this.hasInconsistency(sourceKey)
-   
-        if(incst){            
-
-            if (ctx.task.iteration < this.maxIteration) {
-
-                let altVersions = ctx.altVersions.map(a => Key(a.task.key).taskState("reject").get())
-
-                for (let a of ctx.altVersions) {
-
-                    let t = find(a.user.taskList, t => t.key == a.task.key)
-                    t.key = Key(t.key).taskState("reject").get()
-                    t.metadata = extend({}, t.metadata, {
-                        comment: "Merge attempt failed. Data is not consistent."
-                    })
-                    t.altVersions = altVersions
-
-                    await updateEmployee(a.user)
-
-                }
-
-            } else {
-
-                let mergedTask = await Task.merge({
-                    user,
-                    sourceKey: ctx.task.key,
-                    metadata: {
-                        task: this.ALIAS,
-                        employee: user,
-                        status: "merge",
-                        decoration: this.decoration
-                    },
-                    data: ctx.data,
-                    altVersions: ctx.altVersions,
-                    noSyncAltVersions: true
-                })
-                
-                ctx.task = mergedTask
-                await this.reject({
-                    user,
-                    sourceKey: ctx.task.key,
-                    altVersions: ctx.altVersions.map(a => a.task.key),
-                    metadata: extend({}, metadata, {
-                        comment: "Data is not consistent."
-                    })
-                })
-            }
+            await this.create({
+                user,
+                sourceKey: ctx.task.key,
+                metadata: extend({}, ctx.task.metadata, metadata, {
+                    task: this.ALIAS,
+                    employee: user,
+                    baseKey: ctx.task.metadata.baseKey,
+                    decoration: this.decoration
+                }),
+                altVersions: ctx.task.altVersions,
+                noSyncAltVersions: true,
+                release: { user, sourceKey }
+            })
 
             return
 
         }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-        
+        const incst = await this.hasInconsistency(sourceKey)
+
+        if (incst) {
+
+            let mergedTask = await Task.merge({
+                user,
+                sourceKey: ctx.task.key,
+                metadata: extend({}, ctx.task.metadata, metadata, {
+                    task: this.ALIAS,
+                    employee: user,
+                    status: "merge",
+                    decoration: this.decoration
+                }),
+                data: ctx.data,
+                altVersions: ctx.task.altVersions,
+                noSyncAltVersions: true,
+
+            })
+
+            ctx.task = mergedTask
+            await this.reject({
+                user,
+                sourceKey: ctx.task.key,
+                altVersions: [],
+                metadata: extend({}, ctx.task.metadata, metadata, {
+                    comment: "Data is not consistent.",
+                    baseKey: ctx.task.key,
+                    baseVersions: ctx.task.altVersions,
+                }),
+
+            })
+
+            return
+
+        }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////
+
         let mergedData = segmentationAnalysis.mergeData(ctx.altVersions.map(a => a.data))
-        
+
         let parsedSegmentations = ctx.altVersions
-                    .map(a => a.data.segmentation)
-                    .map(d => (d) ? segmentationAnalysis.parse(d) : []) 
-        
+            .map(a => a.data.segmentation)
+            .map(d => (d) ? segmentationAnalysis.parse(d) : [])
+
         mergedData.segmentation = segmentationAnalysis.mergeSegments(parsedSegmentations.map(d => d.segments)) || {}
         mergedData.segmentation.Murmur = segmentationAnalysis.polygons2v2(mergePolygons(parsedSegmentations.map(d => d.polygons)))
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-        
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
+
         let mergedTask = await Task.merge({
             user,
             sourceKey: ctx.task.key,
-            metadata: {
+            metadata: extend({}, ctx.task.metadata, metadata, {
                 task: this.ALIAS,
                 employee: user,
                 status: "merge",
                 decoration: this.decoration
-            },
+            }),
             data: mergedData,
-            altVersions: ctx.altVersions,
+            altVersions: ctx.task.altVersions,
             noSyncAltVersions: true
         })
 
@@ -758,8 +688,8 @@ const Cross_Labeling_Agent = class extends Agent {
             await this.getAgent(this.NEXT_AGENT).create({
                 // user,
                 sourceKey: mergedTask.key,
-                altVersions: ctx.altVersions,
-                metadata: extend({}, mergedTask.metadata, {
+                altVersions: ctx.task.altVersions,
+                metadata: extend({}, mergedTask.metadata, metadata, {
                     initiator: mergedTask.user,
                     decoration: this.decoration
                 }),
@@ -768,19 +698,20 @@ const Cross_Labeling_Agent = class extends Agent {
 
 
         } else {
+
             log(`${this.ALIAS} commit changes...`)
 
             await Task.commit({
                 user: mergedTask.user,
                 data: mergedData,
                 sourceKey: mergedTask.key,
-                metadata: {
+                metadata: extend({}, mergedTask.metadata, metadata, {
                     task: this.ALIAS,
                     initiator: mergedTask.user,
                     employee: mergedTask.user,
                     status: "commit",
                     decoration: this.decoration
-                }
+                })
             })
         }
 
@@ -796,13 +727,53 @@ const Cross_Labeling_Agent = class extends Agent {
 
             sourceKey: options.sourceKey,
             altVersions: options.altVersions,
-            metadata: extend({}, options.metadata, {
+            metadata: extend({}, options.metadata, metadata, {
                 rejector: options.user,
                 initiator: options.user,
                 decoration: this.decoration
             }),
-            waitFor: options.user,
+            waitFor: null,
             release: { user: options.user, sourceKey: options.sourceKey }
+
+        })
+
+        return result
+
+    }
+
+    async fastReject(options) {
+
+        log(`${this.ALIAS} fastReject...`)
+        log("fastReject options", options)
+
+        if (!this.FAST_REJECT_AGENT) return
+
+        const employeeService = this.getEmployeeService()
+        const { Key } = employeeService
+
+
+        // let ctx = await this.read(options.sourceKey)
+        
+        // let task = let metadata = nth(ctx.version.log, -2)
+        
+        let task = await this.save(options)
+
+        log("this.FAST_REJECT_AGENT", this.FAST_REJECT_AGENT)
+
+        let result = await this.getAgent(this.FAST_REJECT_AGENT).create({
+
+            sourceKey: task.key,
+
+            // altVersions: options.altVersions,
+            metadata: extend({}, task.metadata, {
+                rejector: task.user.namedAs,
+                baseKey: "",
+                initiator: task.user.namedAs,
+                assignTo: Key(task.metadata.baseKey).user(), //metadata.employee,
+                decoration: this.decoration
+            }),
+            waitFor: null,
+            release: { user: options.user, sourceKey: task.key }
 
         })
 
@@ -867,4 +838,4 @@ const Cross_Labeling_Agent = class extends Agent {
 }
 
 
-module.exports = Cross_Labeling_Agent
+module.exports = Cross_Labeling_Pipeline_Agent

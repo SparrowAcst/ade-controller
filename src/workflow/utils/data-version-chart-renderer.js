@@ -76,18 +76,34 @@ const prepareData = data => {
 
     result = sortBy(result, d => d.createdAt)
 
-    let start = first(result)
-    if (start) {
-        processLevels(result, start, 1)
-    } else {
-        result = []
-    }
-
-    result.forEach(n => {
-        if (n.level) {
-            n.level = max(n.level)
-        }
+    result = result.map((d, index) => {
+        d.level = index + 1
+        return d
     })
+
+
+    // let start = first(result)
+    // if (start) {
+    //     processLevels(result, start, 1)
+    // } else {
+    //     result = []
+    // }
+
+    // result.forEach(n => {
+    //     if (n.level) {
+    //         n.level = max(n.level)
+    //     }
+    // })
+
+
+
+
+
+
+
+
+
+
 
     // let buf = (start) ? [{ id: start.id, level: [1] }] : []
     // let index = 0
@@ -126,7 +142,8 @@ const prepareData = data => {
                     log: d.log,
                     value: [
                         findIndex(users, u => (d.user || "main") == u), d.level, d.type,
-                        findIndex(users, u => (f.user || "main") == u), f.level, f.type
+                        findIndex(users, u => (f.user || "main") == u), f.level, f.type,
+                        (d.type == "branch" && d.log.metadata.status != "baseBranch") ? d.log.metadata.task : ""
                     ]
                 }
             }))
@@ -141,7 +158,8 @@ const prepareData = data => {
                     log: d.log,
                     value: [
                         findIndex(users, u => (d.user || "main") == u), d.level, d.type,
-                        findIndex(users, u => (f.user || "main") == u), f.level, f.type
+                        findIndex(users, u => (f.user || "main") == u), f.level, f.type,
+                        (d.type == "branch" && d.log.metadata.status != "baseBranch") ? d.log.metadata.task : ""
                     ]
                 }
             }))
@@ -156,7 +174,8 @@ const prepareData = data => {
                     log: d.log,
                     value: [
                         findIndex(users, u => (d.user || "main") == u), d.level, d.type,
-                        findIndex(users, u => (f.user || "main") == u), f.level, f.type
+                        findIndex(users, u => (f.user || "main") == u), f.level, f.type,
+                        (d.type == "branch" && d.log.metadata.status != "baseBranch") ? d.log.metadata.task : ""
                     ]
                 }
             }))
@@ -171,7 +190,8 @@ const prepareData = data => {
                     log: d.log,
                     value: [
                         findIndex(users, u => (d.user || "main") == u), d.level, d.type,
-                        findIndex(users, u => (f.user || "main") == u), f.level, f.type
+                        findIndex(users, u => (f.user || "main") == u), f.level, f.type,
+                        (d.type == "branch" && d.log.metadata.status != "baseBranch") ? d.log.metadata.task : ""
                     ]
                 }
             }))
@@ -186,7 +206,8 @@ const prepareData = data => {
                     log: d.log,
                     value: [
                         findIndex(users, u => (d.user || "main") == u), d.level, d.type,
-                        findIndex(users, u => (f.user || "main") == u), f.level, f.type
+                        findIndex(users, u => (f.user || "main") == u), f.level, f.type,
+                        (d.type == "branch" && d.log.metadata.status != "baseBranch") ? d.log.metadata.task : ""
                     ]
                 }
             }))
@@ -200,7 +221,8 @@ const prepareData = data => {
                 log: d.log,
                 value: [
                     findIndex(users, u => (d.user || "main") == u), d.level, d.type,
-                    null, null, null
+                    null, null, null,
+                    (d.type == "branch" && d.log.metadata.status != "baseBranch") ? d.log.metadata.task : ""
                 ]
             }])
         }
@@ -208,7 +230,8 @@ const prepareData = data => {
 
     return {
         users,
-        links
+        links,
+        levels: result.length
     }
 }
 
@@ -634,6 +657,826 @@ const prepareData = data => {
 
 // }
 
+// const renderItem = (params, api) => {
+
+//     const color = {
+//         branch: "#FF5722",
+//         save: "#FF9800",
+//         submit: "#689F38",
+//         merge: "#5c6bc0",
+//         main: "#c62828"
+//     }
+
+
+//     const height = api.size([0, 1])[1] * 0.60;
+//     const outerRadius = 0.50 * height
+//     const innerRadius = 0.35 * height
+//     const distance = height
+//     const lineWidth = outerRadius - innerRadius
+//     const stroke = "#8e8e8e"
+//     const fill = "transparent"
+
+//     let source = {
+//         userIndex: api.value(0),
+//         level: api.value(1),
+//         type: api.value(2),
+//     }
+
+//     let coord = api.coord([source.level, source.userIndex])
+//     source.cx = coord[0]
+//     source.cy = coord[1]
+
+//     let target = {
+//         userIndex: api.value(3),
+//         level: api.value(4),
+//         type: api.value(5),
+//     }
+
+//     coord = api.coord([target.level, target.userIndex])
+//     target.cx = coord[0]
+//     target.cy = coord[1] //  - height / 2
+
+//     const renderLink = (source, target) => {
+//         // h-h
+//         if (source.cy == target.cy) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx + outerRadius,
+//                     y1: source.cy,
+//                     x2: target.cx - outerRadius,
+//                     y2: target.cy,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+//         // v-v
+//         if (source.cx == target.cx) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx,
+//                     y1: source.cy + outerRadius,
+//                     x2: target.cx,
+//                     y2: target.cy - outerRadius,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+
+//         // v-h
+//         if (
+//             (source.type == "main" && target.type == "branch") ||
+//             (source.type == "branch" && target.type == "branch") ||
+//             (source.type == "submit" && target.type == "merge") ||
+//             (source.type == "submit" && target.type == "branch") ||
+//             (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: target.cx - outerRadius - distance * 3 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: target.cx - outerRadius - distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1)  ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1)  ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance * 3 / 4,
+//                         cy: source.cy  + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1)  ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1)  ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+//         return []
+//     }
+
+//     const renderNode = source => {
+//         return [{
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: outerRadius
+//                 },
+//                 style: {
+//                     fill: color[source.type]
+//                 }
+//             },
+//             {
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: innerRadius
+//                 },
+//                 style: {
+//                     fill: "white"
+//                 }
+//             },
+//         ]
+//     }
+
+//     return {
+//         type: "group",
+//         children: renderLink(source, target).concat(renderNode(source)),
+//     }
+
+
+// }
+
+
+// const renderItem = (params, api) => {
+
+//     const color = {
+//         branch: "#FF5722",
+//         save: "#FF9800",
+//         submit: "#689F38",
+//         merge: "#5c6bc0",
+//         main: "#c62828"
+//     }
+
+
+//     const height = api.size([0, 1])[1] * 0.60;
+//     const outerRadius = 0.50 * height
+//     const innerRadius = 0.35 * height
+//     const distance = height
+//     const lineWidth = 0.55 * (outerRadius - innerRadius)
+//     const stroke = "#8e8e8e"
+//     const fill = "transparent"
+
+//     let source = {
+//         userIndex: api.value(0),
+//         level: api.value(1),
+//         type: api.value(2),
+//     }
+
+//     let coord = api.coord([source.level, source.userIndex])
+//     source.cx = coord[0]
+//     source.cy = coord[1]
+
+//     let target = {
+//         userIndex: api.value(3),
+//         level: api.value(4),
+//         type: api.value(5),
+//     }
+
+//     coord = api.coord([target.level, target.userIndex])
+//     target.cx = coord[0]
+//     target.cy = coord[1] //  - height / 2
+
+//     const renderLink = (source, target) => {
+//         // h-h
+//         if (source.cy == target.cy) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx + outerRadius,
+//                     y1: source.cy,
+//                     x2: target.cx - outerRadius,
+//                     y2: target.cy,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+//         // v-v
+//         if (source.cx == target.cx) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx,
+//                     y1: source.cy + outerRadius,
+//                     x2: target.cx,
+//                     y2: target.cy - outerRadius,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+
+//         // v-h
+//         if (
+//             (source.type == "main" && target.type == "branch") ||
+//             (source.type == "branch" && target.type == "branch") ||
+//             // (source.type == "submit" && target.type == "merge") ||
+//             (source.type == "submit" && target.type == "branch") ||
+//             (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [{
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: source.cx + outerRadius + distance * 1 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius + distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: source.cx + outerRadius + distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius + distance * 3 / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: source.cx + outerRadius + distance * 3 / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: source.cx + outerRadius + distance * 1 / 4,
+//                         cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+//         if (
+//             // (source.type == "main" && target.type == "branch") ||
+//             // (source.type == "branch" && target.type == "branch") ||
+//             (source.type == "submit" && target.type == "merge")
+//             // (source.type == "submit" && target.type == "branch") 
+//             // (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [{
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: target.cx - outerRadius - distance * 3 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: target.cx - outerRadius - distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance * 3 / 4,
+//                         cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+
+//         return []
+//     }
+
+//     const renderNode = source => {
+//         return [{
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: outerRadius
+//                 },
+//                 style: {
+//                     fill: color[source.type]
+//                 }
+//             },
+//             {
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: innerRadius
+//                 },
+//                 style: {
+//                     fill: "white"
+//                 }
+//             },
+//         ]
+//     }
+
+//     return {
+//         type: "group",
+//         children: renderLink(source, target).concat(renderNode(source)),
+//     }
+
+
+// }
+
+// renderItem = (params, api) => {
+
+//     const color = {
+//         branch: "#FF5722",
+//         save: "#FF9800",
+//         submit: "#689F38",
+//         merge: "#5c6bc0",
+//         main: "#c62828"
+//     }
+
+
+//     // const height = api.size([0, 1])[1] * 0.60;
+
+//     const height = Math.min(api.size([0, 1])[1] * 0.6, api.size([1, 1])[0])
+
+//     const outerRadius = 0.50 * height
+//     const innerRadius = 0.35 * height
+//     const distance = height
+//     const lineWidth = 0.55 * (outerRadius - innerRadius)
+//     const stroke = "#8e8e8e"
+//     const fill = "transparent"
+
+//     let source = {
+//         userIndex: api.value(0),
+//         level: api.value(1),
+//         type: api.value(2),
+//         task: api.value(6)
+//     }
+
+//     let coord = api.coord([source.level, source.userIndex])
+//     source.cx = coord[0]
+//     source.cy = coord[1] + height * 0.25
+
+//     let target = {
+//         userIndex: api.value(3),
+//         level: api.value(4),
+//         type: api.value(5),
+//     }
+
+//     coord = api.coord([target.level, target.userIndex])
+//     target.cx = coord[0]
+//     target.cy = coord[1] + height * 0.25 //  - height / 2
+
+//     const renderLink = (source, target) => {
+//         // h-h
+//         if (source.cy == target.cy) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx + outerRadius,
+//                     y1: source.cy,
+//                     x2: target.cx - outerRadius,
+//                     y2: target.cy,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+//         // v-v
+//         if (source.cx == target.cx) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx,
+//                     y1: source.cy + outerRadius,
+//                     x2: target.cx,
+//                     y2: target.cy - outerRadius,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+
+//         // v-h
+//         if (
+//             (source.type == "main" && target.type == "branch") ||
+//             (source.type == "branch" && target.type == "branch") ||
+//             // (source.type == "submit" && target.type == "merge") ||
+//             (source.type == "submit" && target.type == "branch") ||
+//             (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [{
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: source.cx + outerRadius + distance * 1 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius + distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: source.cx + outerRadius + distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius + distance * 3 / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: source.cx + outerRadius + distance * 3 / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: source.cx + outerRadius + distance * 1 / 4,
+//                         cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+//         if (
+//             // (source.type == "main" && target.type == "branch") ||
+//             // (source.type == "branch" && target.type == "branch") ||
+//             (source.type == "submit" && target.type == "merge")
+//             // (source.type == "submit" && target.type == "branch") 
+//             // (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [{
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: target.cx - outerRadius - distance * 3 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: target.cx - outerRadius - distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance * 3 / 4,
+//                         cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+
+//         return []
+//     }
+
+//     const renderNode = source => {
+//         return [{
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: outerRadius
+//                 },
+//                 style: {
+//                     fill: color[source.type]
+//                 }
+//             },
+//             {
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: innerRadius
+//                 },
+//                 style: {
+//                     fill: "white"
+//                 }
+//             },
+//             {
+//                 type: 'text',
+//                 style: {
+//                     x: source.cx - 1.0 * height,
+//                     y: source.cy - 1.0 * height,
+//                     textVerticalAlign: 'top',
+//                     textAlign: 'left',
+//                     text: source.task || "",
+//                     textFill: '#000',
+//                     fontSize: 10
+//                 }
+//             }
+//             // {
+//             //     type: 'rect',
+//             //     shape: {
+//             //         x: source.cx,
+//             //         y: source.cy - 1.0 * height,
+//             //         width: 1,
+//             //         height: 0.25 * height
+//             //     },
+//             //     style: api.style({
+//             //         fill: 'transparent',
+//             //         stroke: 'transparent',
+//             //         text: source.task || "",
+//             //         textFill: '#000'
+//             //     })
+//             // }
+//         ]
+//     }
+
+//     return {
+//         type: "group",
+//         children: renderLink(source, target).concat(renderNode(source)),
+//     }
+
+
+// }
+
 const renderItem = (params, api) => {
 
     const color = {
@@ -645,23 +1488,27 @@ const renderItem = (params, api) => {
     }
 
 
-    const height = api.size([0, 1])[1] * 0.60;
-    const outerRadius = 0.50 * height
-    const innerRadius = 0.35 * height
+    const height = api.size([0, 1])[1] * 0.65;
+
+    // const height = Math.min(api.size([0, 1])[1] * 0.6, api.size([1, 1])[0])
+
+    const outerRadius = 0.45 * height
+    const innerRadius = 0.30 * height
     const distance = height
-    const lineWidth = outerRadius - innerRadius
+    const lineWidth = 0.35 * (outerRadius - innerRadius)
     const stroke = "#8e8e8e"
     const fill = "transparent"
-    
+
     let source = {
         userIndex: api.value(0),
         level: api.value(1),
         type: api.value(2),
+        task: api.value(6)
     }
 
     let coord = api.coord([source.level, source.userIndex])
     source.cx = coord[0]
-    source.cy = coord[1]
+    source.cy = coord[1] + height * 0.25
 
     let target = {
         userIndex: api.value(3),
@@ -671,7 +1518,7 @@ const renderItem = (params, api) => {
 
     coord = api.coord([target.level, target.userIndex])
     target.cx = coord[0]
-    target.cy = coord[1] //  - height / 2
+    target.cy = coord[1] + height * 0.25 //  - height / 2
 
     const renderLink = (source, target) => {
         // h-h
@@ -713,14 +1560,102 @@ const renderItem = (params, api) => {
 
         // v-h
         if (
-            (source.type == "main" && target.type == "branch") ||
-            (source.type == "branch" && target.type == "branch") ||
-            (source.type == "submit" && target.type == "merge") ||
-            (source.type == "submit" && target.type == "branch") ||
-            (source.type == "merge" && target.type == "branch")
+            (/*source.type == "main" && */ target.type == "branch") 
+            // ||
+            // (source.type == "branch" && target.type == "branch") ||
+            // // (source.type == "submit" && target.type == "merge") ||
+            // (source.type == "submit" && target.type == "branch") ||
+            // (source.type == "merge" && target.type == "branch")
         ) {
-            return [
+            return [{
+                    type: "line",
+                    silent: true,
+                    shape: {
+                        x1: source.cx + outerRadius,
+                        y1: source.cy,
+                        x2: source.cx + outerRadius + distance * 1 / 4,
+                        y2: source.cy,
+                    },
+                    style: {
+                        lineWidth,
+                        stroke,
+                        fill
+                    }
+                },
                 {
+                    type: "line",
+                    silent: true,
+                    shape: {
+                        x1: source.cx + outerRadius + distance / 2,
+                        y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+                        x2: source.cx + outerRadius + distance / 2,
+                        y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+                    },
+                    style: {
+                        lineWidth,
+                        stroke,
+                        fill
+                    }
+                },
+                {
+                    type: "line",
+                    silent: true,
+                    shape: {
+                        x1: source.cx + outerRadius + distance * 3 / 4,
+                        y1: target.cy,
+                        x2: target.cx - outerRadius,
+                        y2: target.cy,
+                    },
+                    style: {
+                        lineWidth,
+                        stroke,
+                        fill
+                    }
+                },
+
+                {
+                    type: "arc",
+                    silent: true,
+                    shape: {
+                        cx: source.cx + outerRadius + distance * 3 / 4,
+                        cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+                        r: distance / 4,
+                        startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+                        endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+                    },
+                    style: {
+                        lineWidth,
+                        stroke,
+                        fill
+                    }
+                },
+                {
+                    type: "arc",
+                    silent: true,
+                    shape: {
+                        cx: source.cx + outerRadius + distance * 1 / 4,
+                        cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+                        r: distance / 4,
+                        startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+                        endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+                    },
+                    style: {
+                        lineWidth,
+                        stroke,
+                        fill
+                    }
+                }
+            ]
+        }
+
+        if (
+            // (source.type == "main" && target.type == "branch") ||
+            // (source.type == "branch" && target.type == "branch") ||
+            (/*source.type == "submit" && */ target.type == "merge")
+            // (source.type == "submit" && target.type == "branch") 
+            // (source.type == "merge" && target.type == "branch")
+        ) {
+            return [{
                     type: "line",
                     silent: true,
                     shape: {
@@ -765,7 +1700,7 @@ const renderItem = (params, api) => {
                         fill
                     }
                 },
-                
+
                 {
                     type: "arc",
                     silent: true,
@@ -773,8 +1708,8 @@ const renderItem = (params, api) => {
                         cx: target.cx - outerRadius - distance / 4,
                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
                         r: distance / 4,
-                        startAngle: (Math.sign(target.cy - source.cy) == -1)  ? Math.PI : Math.PI / 2,
-                        endAngle: (Math.sign(target.cy - source.cy) == -1)  ? Math.PI * 3 / 2 : Math.PI
+                        startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+                        endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
                     },
                     style: {
                         lineWidth,
@@ -787,10 +1722,10 @@ const renderItem = (params, api) => {
                     silent: true,
                     shape: {
                         cx: target.cx - outerRadius - distance * 3 / 4,
-                        cy: source.cy  + Math.sign(target.cy - source.cy) * distance / 4,
+                        cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
                         r: distance / 4,
-                        startAngle: (Math.sign(target.cy - source.cy) == -1)  ? 0 : Math.PI * 3 / 2,
-                        endAngle: (Math.sign(target.cy - source.cy) == -1)  ? Math.PI / 2 : 0
+                        startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+                        endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
                     },
                     style: {
                         lineWidth,
@@ -800,6 +1735,7 @@ const renderItem = (params, api) => {
                 }
             ]
         }
+
 
         return []
     }
@@ -813,7 +1749,9 @@ const renderItem = (params, api) => {
                     r: outerRadius
                 },
                 style: {
-                    fill: color[source.type]
+                    stroke: color[source.type],
+                    fill: "white",
+                    lineWidth: outerRadius - innerRadius  
                 }
             },
             {
@@ -824,9 +1762,37 @@ const renderItem = (params, api) => {
                     r: innerRadius
                 },
                 style: {
-                    fill: "white"
+                    fill: (source.task) ? color[source.type] : "white",
+                    opacity: (source.task) ? 0.3 : 1
                 }
             },
+            {
+                type: 'text',
+                style: {
+                    x: source.cx - 1.0 * height,
+                    y: source.cy - 1.0 * height,
+                    textVerticalAlign: 'top',
+                    textAlign: 'left',
+                    text: source.task || "",
+                    textFill: '#000',
+                    fontSize: 9
+                }
+            }
+            // {
+            //     type: 'rect',
+            //     shape: {
+            //         x: source.cx,
+            //         y: source.cy - 1.0 * height,
+            //         width: 1,
+            //         height: 0.25 * height
+            //     },
+            //     style: api.style({
+            //         fill: 'transparent',
+            //         stroke: 'transparent',
+            //         text: source.task || "",
+            //         textFill: '#000'
+            //     })
+            // }
         ]
     }
 
@@ -838,17 +1804,425 @@ const renderItem = (params, api) => {
 
 }
 
+
+// const renderItem = (params, api) => {
+
+//     const color = {
+//         branch: "#FF5722",
+//         save: "#FF9800",
+//         submit: "#689F38",
+//         merge: "#5c6bc0",
+//         main: "#c62828"
+//     }
+
+
+//     const height = api.size([0, 1])[1] * 0.65;
+
+//     // const height = Math.min(api.size([0, 1])[1] * 0.6, api.size([1, 1])[0])
+
+//     const outerRadius = 0.45 * height
+//     const innerRadius = 0.30 * height
+//     const distance = height
+//     const lineWidth = 0.35 * (outerRadius - innerRadius)
+//     const stroke = "#8e8e8e"
+//     const fill = "transparent"
+
+//     let source = {
+//         userIndex: api.value(0),
+//         level: api.value(1),
+//         type: api.value(2),
+//         task: api.value(6)
+//     }
+
+//     let coord = api.coord([source.level, source.userIndex])
+//     source.cx = coord[0]
+//     source.cy = coord[1] + height * 0.25
+
+//     let target = {
+//         userIndex: api.value(3),
+//         level: api.value(4),
+//         type: api.value(5),
+//     }
+
+//     coord = api.coord([target.level, target.userIndex])
+//     target.cx = coord[0]
+//     target.cy = coord[1] + height * 0.25 //  - height / 2
+
+//     const renderLink = (source, target) => {
+//         // h-h
+//         if (source.cy == target.cy) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx + outerRadius,
+//                     y1: source.cy,
+//                     x2: target.cx - outerRadius,
+//                     y2: target.cy,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+//         // v-v
+//         if (source.cx == target.cx) {
+//             return [{
+//                 type: "line",
+//                 silent: true,
+//                 shape: {
+//                     x1: source.cx,
+//                     y1: source.cy + outerRadius,
+//                     x2: target.cx,
+//                     y2: target.cy - outerRadius,
+//                 },
+//                 style: {
+//                     lineWidth,
+//                     stroke,
+//                     fill
+//                 }
+//             }]
+//         }
+
+//         // v-h
+//         if (
+//             (source.type == "main" && target.type == "branch") ||
+//             (source.type == "branch" && target.type == "branch") ||
+//             // (source.type == "submit" && target.type == "merge") ||
+//             (source.type == "submit" && target.type == "branch") ||
+//             (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [{
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: source.cx + outerRadius + distance * 1 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius + distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: source.cx + outerRadius + distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius + distance * 3 / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: source.cx + outerRadius + distance * 3 / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: source.cx + outerRadius + distance * 1 / 4,
+//                         cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+//         if (
+//             // (source.type == "main" && target.type == "branch") ||
+//             // (source.type == "branch" && target.type == "branch") ||
+//             (source.type == "submit" && target.type == "merge")
+//             // (source.type == "submit" && target.type == "branch") 
+//             // (source.type == "merge" && target.type == "branch")
+//         ) {
+//             return [{
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: source.cx + outerRadius,
+//                         y1: source.cy,
+//                         x2: target.cx - outerRadius - distance * 3 / 4,
+//                         y2: source.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 2,
+//                         y1: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         x2: target.cx - outerRadius - distance / 2,
+//                         y2: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "line",
+//                     silent: true,
+//                     shape: {
+//                         x1: target.cx - outerRadius - distance / 4,
+//                         y1: target.cy,
+//                         x2: target.cx - outerRadius,
+//                         y2: target.cy,
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance / 4,
+//                         cy: target.cy - Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI : Math.PI / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI * 3 / 2 : Math.PI
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 },
+//                 {
+//                     type: "arc",
+//                     silent: true,
+//                     shape: {
+//                         cx: target.cx - outerRadius - distance * 3 / 4,
+//                         cy: source.cy + Math.sign(target.cy - source.cy) * distance / 4,
+//                         r: distance / 4,
+//                         startAngle: (Math.sign(target.cy - source.cy) == -1) ? 0 : Math.PI * 3 / 2,
+//                         endAngle: (Math.sign(target.cy - source.cy) == -1) ? Math.PI / 2 : 0
+//                     },
+//                     style: {
+//                         lineWidth,
+//                         stroke,
+//                         fill
+//                     }
+//                 }
+//             ]
+//         }
+
+
+//         return []
+//     }
+
+//     const renderNode = source => {
+//       let res = (source.task) 
+//         ? [
+//             {
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: outerRadius
+//                 },
+//                 style: {
+//                     stroke: color[source.type],
+//                     fill: color[source.type],
+//                     opacity: 0.3,
+//                     lineWidth: outerRadius - innerRadius,
+//                 }
+//             }
+//             // {
+//             //     type: 'polygon',
+//             //     shape: {
+//             //         points:[
+//             //           [source.cx - outerRadius, source.cy - outerRadius],
+//             //           [source.cx + outerRadius, source.cy],
+//             //           [source.cx - outerRadius, source.cy + outerRadius],
+//             //         ]
+//             //     },
+//             //     style: {
+//             //         stroke: color[source.type],
+//             //         lineWidth: outerRadius - innerRadius,
+//             //         fill: "#ffffff"
+//             //     }
+//             // }
+//           ]
+//         : [{
+//                 type: 'circle',
+//                 shape: {
+//                     cx: source.cx,
+//                     cy: source.cy,
+//                     r: outerRadius
+//                 },
+//                 style: {
+//                     stroke: color[source.type],
+//                     fill: "#ffffff",
+//                     lineWidth: outerRadius - innerRadius,
+//                 }
+//             }]
+            
+//         res.push({
+//                 type: 'text',
+//                 style: {
+//                     x: source.cx - 1.0 * height,
+//                     y: source.cy - 1.0 * height,
+//                     textVerticalAlign: 'top',
+//                     textAlign: 'left',
+//                     text: source.task || "",
+//                     textFill: '#000',
+//                     fontSize: 9
+//                 }
+//             })   
+            
+//         return res    
+//         return [
+//           {
+//                 type: 'polygon',
+//                 shape: {
+//                     points:[
+//                       [source.cx - outerRadius, source.cy - outerRadius],
+//                       [source.cx + outerRadius, source.cy],
+//                       [source.cx - outerRadius, source.cy + outerRadius],
+//                     ]
+//                 },
+//                 style: {
+//                     stroke: color[source.type],
+//                     lineWidth: 2,
+//                     fill: "#ffffff"
+//                 }
+//             },
+          
+//           // {
+//           //       type: 'circle',
+//           //       shape: {
+//           //           cx: source.cx,
+//           //           cy: source.cy,
+//           //           r: outerRadius
+//           //       },
+//           //       style: {
+//           //           fill: color[source.type]
+//           //       }
+//           //   },
+//           //   {
+//           //       type: 'circle',
+//           //       shape: {
+//           //           cx: source.cx,
+//           //           cy: source.cy,
+//           //           r: innerRadius
+//           //       },
+//           //       style: {
+//           //           fill: (source.task) ? color[source.type] : "white"
+//           //       }
+//           //   },
+//             {
+//                 type: 'text',
+//                 style: {
+//                     x: source.cx - 1.0 * height,
+//                     y: source.cy - 1.0 * height,
+//                     textVerticalAlign: 'top',
+//                     textAlign: 'left',
+//                     text: source.task || "",
+//                     textFill: '#000',
+//                     fontSize: 9
+//                 }
+//             }
+//             // {
+//             //     type: 'rect',
+//             //     shape: {
+//             //         x: source.cx,
+//             //         y: source.cy - 1.0 * height,
+//             //         width: 1,
+//             //         height: 0.25 * height
+//             //     },
+//             //     style: api.style({
+//             //         fill: 'transparent',
+//             //         stroke: 'transparent',
+//             //         text: source.task || "",
+//             //         textFill: '#000'
+//             //     })
+//             // }
+//         ]
+//     }
+
+//     return {
+//         type: "group",
+//         children: renderLink(source, target).concat(renderNode(source)),
+//     }
+
+
+// }
+
 const formatter = params => {
     return `
           <div>
             <b>${params.data.log.metadata.task || ""}</b> 
           </div>
           <div>
+            <b>Emitter:</b>: ${params.data.log.metadata.emitter || ""}
+          </div>
+          <div>
             <b>User</b>: ${params.data.user || ""}
           </div>
           <div>
             <b>Status:</b> ${params.data.log.metadata.status || ""} at ${moment(params.data.createdAt).format("DD MMM, YYYY HH:mm:ss")}
-          </div>`
+          </div>
+          <div>
+            <b>Comment:</b> ${params.data.log.metadata.comment || ""}
+          </div>
+          `
 }
 
 
@@ -865,11 +2239,12 @@ const getChart = versions => {
         grid: {
             containLabel: true,
             left: 10,
-            right: 10
+            right: 10,
+            height: data.users.length * 50
         },
         xAxis: {
             show: false,
-            max: 25
+            max: Number.parseInt(Math.max(25, data.levels).toFixed(0)) + 3
         },
         yAxis: {
             data: data.users,

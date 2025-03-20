@@ -75,37 +75,49 @@ const select = async selector => {
 }
 
 
-const getTriggersInfo = async () => {
-    const pipeline = [{
-            $group: {
-                _id: "$state",
-                count: {
-                    $sum: 1,
-                },
-            },
-        },
+const getTriggersInfo = async selector => {
+    
+    // const pipeline = [{
+    //         $group: {
+    //             _id: "$state",
+    //             count: {
+    //                 $sum: 1,
+    //             },
+    //         },
+    //     },
+    //     {
+    //         $project: {
+    //             _id: 0,
+    //             state: "$_id",
+    //             count: 1,
+    //         },
+    //     },
+    // ]
+
+    const pipeline = [
         {
             $project: {
                 _id: 0,
-                state: "$_id",
-                count: 1,
-            },
-        },
+                state: 1
+            }
+        }    
     ]
 
-    let triggers = await select()
+    let triggers = await select(selector)
     
     for (let trigger of triggers) {
+    
         let stat = await docdb.aggregate({
             db, 
             collection: trigger.collection,
             pipeline
         })
         
-        let triggered = find(stat, s => s.state == "triggered")
+        let triggered = stat.filter(s => s.state == "triggered").length //find(stat, s => s.state == "triggered")
+    
         trigger.stat = {
-            emitted: (triggered) ? triggered.count : 0,
-            total: stat.map(s => s.count).reduce((a,b) => a+b, 0)
+            emitted: triggered,
+            total: stat.length //map(s => s.count).reduce((a,b) => a+b, 0)
         }    
     }
 

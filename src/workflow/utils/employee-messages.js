@@ -11,6 +11,8 @@ const configRB = config.rabbitmq.TEST
 let PUBLISHER
 let CONSUMER
 let LOG_PUBLISHER
+let MS_CONSUMER
+
 
 const getPublisher = async () => {
     if(!PUBLISHER) {
@@ -63,9 +65,19 @@ const getConsumer = async () => {
     return CONSUMER
 }
 
+const getMsConsumer = async () => {
+    if(!MS_CONSUMER){
+        
+        MS_CONSUMER = await AmqpManager.createConsumer(configRB.consumer.employeeDb)
+    }
+
+    return MS_CONSUMER
+}
+
 
 module.exports = {
     getConsumer,
     getPublisher,
-    getLogPublisher
+    getLogPublisher,
+    getMsConsumer
 }

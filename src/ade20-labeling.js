@@ -20,7 +20,7 @@ const getRecordData = async (req, res) => {
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
         // log(sourceKey)
         let result = await agentInstance.read(sourceKey)
-        result.permissions = agentInstance.uiPermissions
+        // result.permissions = agentInstance.getUiPermissions()
         res.send(result)
 
     } catch (e) {
@@ -67,7 +67,7 @@ const saveRecordData = async (req, res) => {
 const rejectRecordData = async (req, res) => {
     try {
 
-        let { user, sourceKey, metadata } = req.body.options
+        let { user, sourceKey, metadata, data } = req.body.options
         
         const description = Key(sourceKey).getDescription()
         
@@ -76,14 +76,14 @@ const rejectRecordData = async (req, res) => {
         
         if(!agentInstance) throw new Error(`Agent ${agent} not found`)
         
-        let result = await agentInstance.reject({
+        let result = await agentInstance.fastReject({
             user: user.altname, 
             sourceKey, 
-            metadata
+            metadata,
+            data
         })
         
         res.send(result)
-
 
     } catch (e) {
 
@@ -93,6 +93,8 @@ const rejectRecordData = async (req, res) => {
         })
     }   
 }
+
+
 
 const submitRecordData = async (req, res) => {
        try {
