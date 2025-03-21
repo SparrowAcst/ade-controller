@@ -14,7 +14,7 @@ const dataDiff = require("../../utils/segmentation/data-diff")
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "hours"],
+    DEFFERED_TIMEOUT: [1, "minutes"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
@@ -546,7 +546,7 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
             data: ctx.data,
             sourceKey,
             altVersions: ctx.task.altVersions,
-            metadata: extend({}, ctx.task.metadata, metadata, {
+            metadata: extend({}, ctx.task.metadata, {
                 task: this.ALIAS,
                 employee: user,
                 status: "commit",

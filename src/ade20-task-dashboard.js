@@ -440,7 +440,7 @@ const getDeferredStat = async (req, res) => {
     
     try {
         const options = req.body
-        let result = await STAT.getDeferredStat(options)
+        let result = await STAT.getDeferredStat(options.emitter)
         res.send(result)
 
     } catch (e) {
@@ -451,11 +451,34 @@ const getDeferredStat = async (req, res) => {
     }
 }
 
+
+const getAssignedStat = async (req, res) => {
+    try {
+        
+        const employeeManager = await EMPLOYEE_MANAGER()
+        const emitter = req.body.emitter
+        let result = await employeeManager.employes(emp => emp.schedule)
+        result = sum(result
+                        .map( r => (r.taskList || []).filter(t => (emitter) ? t.metadata.emitter == emitter : true).length)
+        )
+        res.send([{
+            emitter,
+            count: result
+        }])
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }    
+}
+
 const getTaskStat = async (req, res) => {
     
     try {
-        const options = req.body
-        let result = await STAT.getTaskStat(options)
+        const selector = req.body
+        let result = await STAT.getTaskStat(selector)
         res.send(result)
 
     } catch (e) {
@@ -508,7 +531,8 @@ module.exports = {
     getPoolStat,
     getDeferredStat,
     getTaskStat,
-    getTaskEvents
+    getTaskEvents,
+    getAssignedStat
 
     
 }

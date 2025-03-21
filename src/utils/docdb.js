@@ -188,7 +188,7 @@ const aggregate = async options => {
 
     } finally {
 
-        if (client) client.close()
+        if (client && clients > 0) client.close()
         clients--
         // console.log("<<<<<< A")
     }

@@ -237,13 +237,14 @@ module.exports = {
 
         router.post("/stat/pool", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getPoolStat])
         router.post("/stat/deferred", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getDeferredStat])
-        router.post("/stat/task", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskStat])
-        router.post("/stat/events", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
+        // router.post("/stat/task", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskStat])
+        // router.post("/stat/events", [ authorize, DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
 
         // router.post("/stat/pool", [  DBCache, lockCurrentDataset,  ade20TaskDashboard.getPoolStat])
         // router.post("/stat/deferred", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getDeferredStat])
-        // router.post("/stat/task", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskStat])
-        // router.post("/stat/events", [  DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
+        router.post("/stat/task", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskStat])
+        router.post("/stat/events", [  DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
+        router.post("/stat/assigned", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getAssignedStat])
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

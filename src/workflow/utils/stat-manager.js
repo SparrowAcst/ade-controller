@@ -18,63 +18,64 @@ const getPoolStat = async collection => {
     return result
 }
 
-const getDeferredStat = async () => {
+const getDeferredStat = async emitter => {
+
+    let pipeline = (emitter) 
+        ?   [
+                {
+                    $match: {
+                        "data.metadata.emitter": emitter
+                    }
+                }
+            ]
+        : []    
+
+    pipeline = pipeline.concat([
+        {
+            $group: {
+                _id: "1",
+                count: {
+                    $sum: 1,
+                },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                count: 1,
+                emitter: emitter
+            },
+        },
+    ])    
 
     let result = await docdb.aggregate({
         db,
         collection: `ADE-SETTINGS.deferred-tasks`,
-        pipeline: [{
-                $group: {
-                    _id: "$data.alias",
-                    count: {
-                        $sum: 1,
-                    },
-                },
-            },
-            {
-                $project: {
-                    _id: 0,
-                    taskType: "$_id",
-                    count: 1,
-                },
-            },
-        ]
+        pipeline
     })
+    
     return result
 
 }
 
-const getTaskStat = async ({ status }) => {
-    let result = await docdb.aggregate({
-        db,
-        collection: `ADE-SETTINGS.task-log`,
-        pipeline: [{
-                $match: {
-                    "metadata.status": status,
-                },
-            },
-            {
-                $group: {
-                    _id: "$description.taskType",
-                    count: {
-                        $sum: 1,
-                    },
-                    workflowType: {
-                        $first: "$description.workflowType"
-                    }
-                },
-            },
-            {
-                $project: {
-                    _id: 0,
-                    taskType: "$_id",
-                    workflowType: 1,
-                    count: 1,
-                },
-            },
-        ]
-    })
-    return result
+const getAssignedStat = async => {
+
+}
+
+const getTaskStat = async selector  => {
+    try {
+        if(!selector) return []
+
+        let result = await docdb.aggregate({
+            db,
+            collection: `ADE-SETTINGS.task-log`,
+            pipeline: selector
+        })
+        return result
+    } catch (e) {
+        log(e.toString(), e.stack)
+        throw e
+    }    
 }
 
 const getTaskEvents = async ({ status, startDate }) => {

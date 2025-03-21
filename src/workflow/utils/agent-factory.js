@@ -8,7 +8,7 @@ const log  = require("./logger")(__filename)
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "hours"],
+    DEFFERED_TIMEOUT: [1, "minutes"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
@@ -41,8 +41,7 @@ const checkPretendentCriteria = (agent, user) => {
 
 
 const checkPossibilityOfCreating = async (agent, key) => {
-    log(agent)
-    
+
     if(agent.canCreate == "allways") return true
 
     if(agent.canCreate == "for free data") {
@@ -313,13 +312,13 @@ const Basic_Labeling_Agent = class extends Agent {
                 user,
                 data,
                 sourceKey,
-                metadata: {
+                metadata: extend({}, metadata, {
                     task: this.ALIAS,
                     initiator,
                     employee: user,
                     status: "commit",
                     decoration: this.decoration
-                }
+                })
             })
         }
 

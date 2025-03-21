@@ -8,7 +8,7 @@ const uuid = require("uuid").v4
 const dataDiff = require("../../utils/segmentation/data-diff")
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "hours"],
+    DEFFERED_TIMEOUT: [1, "minutes"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
