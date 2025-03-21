@@ -504,6 +504,8 @@ const getTaskEvents = async (req, res) => {
     }
 }
 
+
+
  
 module.exports = {
     getTaskList,
@@ -533,6 +535,7 @@ module.exports = {
     getTaskStat,
     getTaskEvents,
     getAssignedStat
+
 
     
 }
