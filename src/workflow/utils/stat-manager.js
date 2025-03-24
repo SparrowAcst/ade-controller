@@ -144,7 +144,7 @@ const getMetric = async ({ metric, filter, limit, afterDate}) => {
         }
     ]
 
-    if(lastDate){
+    if(afterDate){
         pipeline.push({
             $match:{
                 date: {
