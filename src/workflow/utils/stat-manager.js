@@ -1,6 +1,6 @@
 const uuid = require("uuid").v4
 
-const log  = require("./logger")(__filename) //(path.basename(__filename))
+const log = require("./logger")(__filename) //(path.basename(__filename))
 
 const docdb = require("../../utils/docdb")
 
@@ -20,18 +20,13 @@ const getPoolStat = async collection => {
 
 const getDeferredStat = async emitter => {
 
-    let pipeline = (emitter) 
-        ?   [
-                {
-                    $match: {
-                        "data.metadata.emitter": emitter
-                    }
-                }
-            ]
-        : []    
+    let pipeline = (emitter) ? [{
+        $match: {
+            "data.metadata.emitter": emitter
+        }
+    }] : []
 
-    pipeline = pipeline.concat([
-        {
+    pipeline = pipeline.concat([{
             $group: {
                 _id: "1",
                 count: {
@@ -46,25 +41,25 @@ const getDeferredStat = async emitter => {
                 emitter: emitter
             },
         },
-    ])    
+    ])
 
     let result = await docdb.aggregate({
         db,
         collection: `ADE-SETTINGS.deferred-tasks`,
         pipeline
     })
-    
+
     return result
 
 }
 
-const getAssignedStat = async => {
+const getAssignedStat = async =>{
 
 }
 
-const getTaskStat = async selector  => {
+const getTaskStat = async selector => {
     try {
-        if(!selector) return []
+        if (!selector) return []
 
         let result = await docdb.aggregate({
             db,
@@ -75,24 +70,24 @@ const getTaskStat = async selector  => {
     } catch (e) {
         log(e.toString(), e.stack)
         throw e
-    }    
+    }
 }
 
 const getTaskEvents = async ({ status, startDate }) => {
     startDate = startDate || moment().subtract(24, "hours").toDate()
     let pipeline = [
-    
+
         {
-    $addFields:
-      
-      {
-        d: {
-          $dateFromString: {
-            dateString: "$createdAt",
-          },
+            $addFields:
+
+            {
+                d: {
+                    $dateFromString: {
+                        dateString: "$createdAt",
+                    },
+                },
+            },
         },
-      },
-  },
         {
             $match: {
                 "metadata.status": status,
@@ -131,10 +126,9 @@ const getTaskEvents = async ({ status, startDate }) => {
 }
 
 
-const getMetric = async ({ metric, filter, limit, afterDate}) => {
+const getMetric = async ({ metric, filter, limit, afterDate }) => {
 
-    let pipeline = [
-        {
+    let pipeline = [{
             $match: filter || {}
         },
         {
@@ -144,26 +138,44 @@ const getMetric = async ({ metric, filter, limit, afterDate}) => {
         }
     ]
 
-    if(afterDate){
+    if (afterDate) {
         pipeline.push({
-            $match:{
+            $match: {
                 date: {
                     $gt: moment(afterDate).toDate()
                 }
             }
         })
     } else {
-        pipeline.push({$limit: limit || 1})
+        pipeline.push({ $limit: limit || 1 })
     }
 
     let result = await docdb.aggregate({
         db,
         collection: `ADE-STATS.${metric}`,
         pipeline
-    })    
+    })
+
+    if (result.length == 0) {
+        if (afterDate) {
+            result = [extend({}, filter, {
+                date: new Date(),
+                count: 0
+            })]
+        } else {
+            result = []
+            date = moment()
+            for (let i = limit - 1; i > 0; i--) {
+                result.push(extend({}, filter, {
+                    date: date.subtract(i * 15, "seconds").toDate(),
+                    count: 0
+                }))
+            }
+        }
+    }
 
     return sortBy(result, d => d.date)
-} 
+}
 
 
 
