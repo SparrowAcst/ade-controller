@@ -175,7 +175,6 @@ const updateTask = async options => {
             noSyncAltVersions
         } = options
 
-        log("metadata", metadata)
 
         let prevCtx = await context(sourceKey)
 
@@ -282,7 +281,7 @@ const baseBranch = async options => {
 const save = async options => {
 
     let { user, sourceKey, data, metadata, altVersions, iteration, noSyncAltVersions } = options
-    log("metadata", metadata)
+    // log("metadata", metadata)
     let task = await updateTask({
         user,
         sourceKey,

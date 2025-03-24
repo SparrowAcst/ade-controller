@@ -133,14 +133,14 @@ const getTriggersInfo = async selector => {
     // ]
 
     let triggers = await select(selector)
-    log("triggers", triggers)
+    // log("triggers", triggers)
 
     const loadCounts = async trigger => {
         let stat = await docdb.countDocuments({
             db,
             collection: trigger.collection
         })
-        log(trigger.collection, stat)
+        // log(trigger.collection, stat)
         return stat
     }
 

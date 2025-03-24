@@ -87,6 +87,8 @@ let series = [
 
 
 const parseV1 = segmentation => {
+
+    log("segmentation", JSON.stringify(segmentation, null, " "))
     let segments = []
 
     segments = keys(segmentation).filter(key => key != "v2").map(key => ({
@@ -245,6 +247,8 @@ const parse = segmentation => {
     let segments = []
     let polygons = []
 
+    segmentation = (segmentation.segmentation) ? segmentation.segmentation : segmentation
+ 
     if (isArray(segmentation)) {
         if (segmentation[0] && segmentation[0].points) {
             segments = parsePolygons(segmentation)
@@ -253,7 +257,7 @@ const parse = segmentation => {
             segments = parseAI(segmentation)
         }
 
-    } else if (segmentation && segmentation.v2 == true){  //(segmentation.S1 || segmentation.S2 || segmentation.unsegmentable)) {
+    } else if (segmentation && ( segmentation.v2 == true || !!segmentation.s1 || !!segmentation.s2 || !!segmentation.unsegmentable)) {
 
         segments = parseV2(segmentation)
         polygons = parsePoly(segmentation)
@@ -293,9 +297,7 @@ const polygons2v2 = polygons => {
 const getSegmentationChart = (sa, nonConsistencyIntervals) => {
 
     let segments = JSON.parse(JSON.stringify(sa.segmentation.segments))
-    
-    // log("segments", segments)
-
+   
     nonConsistencyIntervals = nonConsistencyIntervals || []
 
     let murmurCategories = uniqBy(segments.map(s => s.type)).filter(d => !SEGMENT_TYPES.includes(d))
@@ -629,7 +631,6 @@ const getMultiSegmentationChart = (users, segmentations, nonConsistencyIntervals
 const select = (sa, ...types) => {
 
     let segments = sa.segmentation.segments
-    // log(segments)
     let selector = (types && isArray(types) && types.length > 0) ? (s => types.includes(s.type)) : (s => s)
     segments = sortBy(segments, s => s.start).filter(selector)
     return segments
@@ -808,7 +809,6 @@ const getSystoleDiastole = sa => {
     }
     
     if( select(sa,"S1").length > 0 && select(sa,"S2").length > 0){
-        // log("sa", sa)
         
         remove(sa.segmentation.segments, s => ["systole", "diastole"].includes(s.type))
 
@@ -1523,7 +1523,6 @@ const reduceEquality = (set1, set2, finder, key) => {
     while (i < set1.length) {
         
         let index = finder(set1[i], set2, key)
-        // log(index, set1[i], set2[index])
         if (index > -1) {
             set1.splice(i, 1)
             set2.splice(index, 1)
@@ -1549,7 +1548,6 @@ const findEqualSegmentIndex = (sample, sequence, type) => {
             Math.abs(sample.hf - s.hf)
         ]
         .map((v, index) => {
-            // log(type, index,":", v, TOLERANCE.segment[type][index], v <= TOLERANCE.segment[type][index])
             return v <= TOLERANCE.segment[type][index]
         })
         .reduce((a, b) => a && b, true)
@@ -1559,8 +1557,8 @@ const findEqualSegmentIndex = (sample, sequence, type) => {
 const getPairSegmentsDiff = (s1, s2) => {
 
     let matchData = CHECKED_SEGMENT_TYPES.map(type => ({
-        s1: s1.filter(d => d.type == type),
-        s2: s2.filter(d => d.type == type),
+        s1: (s1 || []).filter(d => d.type == type),
+        s2: (s2 || []).filter(d => d.type == type),
     }))
 
     let diff = []
@@ -1571,7 +1569,6 @@ const getPairSegmentsDiff = (s1, s2) => {
 
         let m = matchData[key]
         diff.push(reduceEquality(m.s1, m.s2, findEqualSegmentIndex, key))
-        // log(key, diff)
     })
 
     let segments = zipObject(CHECKED_SEGMENT_TYPES, diff)
@@ -1645,7 +1642,7 @@ const mergeSegments = segmentations => {
 
     let mergeData = SEGMENT_TYPES.map(
         type => segmentations.map(
-            seg => seg.filter(d => d.type == type)
+            seg => (seg || []).filter(d => d.type == type)
         )
     )
 
@@ -1744,6 +1741,10 @@ const getDataDiff = dataArray => {
 
 
 const mergeData = dataArray => DataDiff.merge(dataArray)
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -6,6 +6,14 @@ const log = require("./logger")(__filename)
 const { Agent } = require("./agent.class")
 const { AmqpManager, Middlewares } = require('@molfar/amqp-client')
 const segmentationAnalysis = require("../../utils/segmentation/segment-analysis")
+const {
+    hasDataInconsistency,
+    hasSegmentationInconsistency,
+    hasPolygonsInconsistency,
+    getPolygonsInconsistency,
+    mergePolygons
+} = require("../../utils/segmentation/segment-utils")
+
 
 const moment = require("moment")
 const uuid = require("uuid").v4
@@ -196,66 +204,65 @@ const createCommand = agent => async (error, message, next) => {
 }
 
 
-const hasDataInconsistency = dataDiff => dataDiff && dataDiff.length > 0
+// const hasDataInconsistency = dataDiff => dataDiff && dataDiff.length > 0
 
-const hasSegmentationInconsistency = diff => {
-    return (diff) ? diff
-        .map(diff => keys(diff)
-            .map(key => diff[key].length > 0)
-            .reduce((a, b) => a || b, false)
-        )
-        .reduce((a, b) => a || b, false) : false
-}
+// const hasSegmentationInconsistency = diff => {
+//     return (diff) ? diff
+//         .map(diff => keys(diff)
+//             .map(key => diff[key].length > 0)
+//             .reduce((a, b) => a || b, false)
+//         )
+//         .reduce((a, b) => a || b, false) : false
+// }
 
-const hasPolygonsInconsistency = diff => diff && diff.length > 0
-
-
-const getPolygonsInconsistency = polygonArray => {
-
-    let result = []
-
-    polygonArray[0].forEach(pa => {
-
-        let polygonSet = []
-        polygonArray.forEach(p => {
-            let f = find(p, p => p.name == pa.name)
-            if (f) {
-                polygonSet.push(f.shapes)
-            }
-        })
-        result.push(
-            segmentationAnalysis
-            .getPolygonsDiff(polygonSet)
-        )
-
-    })
-
-    return result
-
-}
+// const hasPolygonsInconsistency = diff => diff && diff.length > 0
 
 
-const mergePolygons = polygonArray => {
+// const getPolygonsInconsistency = polygonArray => {
 
-    let res = polygonArray[0].map(pa => {
+//     let result = []
 
-        let polygonSet = []
-        polygonArray.forEach(p => {
-            let f = find(p, p => p.name == pa.name)
-            if (f) {
-                polygonSet.push(f.shapes)
-            }
+//     polygonArray[0].forEach(pa => {
 
-        })
+//         let polygonSet = []
+//         polygonArray.forEach(p => {
+//             let f = find(p, p => p.name == pa.name)
+//             if (f) {
+//                 polygonSet.push(f.shapes)
+//             }
+//         })
+//         result.push(
+//             segmentationAnalysis
+//             .getPolygonsDiff(polygonSet)
+//         )
 
-        return {
-            name: pa.name,
-            shapes: segmentationAnalysis.mergePolygons(polygonSet)
-        }
-    })
+//     })
 
-    return res
-}
+//     return result
+
+// }
+
+// const mergePolygons = polygonArray => {
+
+//     let res = polygonArray[0].map(pa => {
+
+//         let polygonSet = []
+//         polygonArray.forEach(p => {
+//             let f = find(p, p => p.name == pa.name)
+//             if (f) {
+//                 polygonSet.push(f.shapes)
+//             }
+
+//         })
+
+//         return {
+//             name: pa.name,
+//             shapes: segmentationAnalysis.mergePolygons(polygonSet)
+//         }
+//     })
+
+//     return res
+// }
 
 
 const Cross_Merge_Pipeline_Agent = class extends Agent {
