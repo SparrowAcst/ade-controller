@@ -7,7 +7,7 @@ const docdb = require("../../utils/docdb")
 const config = require("../../../.config")
 const db = config.docdb
 
-const { isArray, last, keys, isFunction, extend, find } = require("lodash")
+const { isArray, last, keys, isFunction, extend, find, sortBy } = require("lodash")
 const moment = require("moment")
 
 const getPoolStat = async collection => {
@@ -131,9 +131,46 @@ const getTaskEvents = async ({ status, startDate }) => {
 }
 
 
+const getMetric = async ({ metric, filter, limit, afterDate}) => {
+
+    let pipeline = [
+        {
+            $match: filter || {}
+        },
+        {
+            $sort: {
+                date: -1
+            }
+        }
+    ]
+
+    if(lastDate){
+        pipeline.push({
+            $match:{
+                date: {
+                    $gt: moment(afterDate).toDate()
+                }
+            }
+        })
+    } else {
+        pipeline.push({$limit: limit || 1})
+    }
+
+    let result = await docdb.aggregate({
+        db,
+        collection: `ADE-STATS.${metric}`,
+        pipeline
+    })    
+
+    return sortBy(result, d => d.date)
+} 
+
+
+
 module.exports = {
     getPoolStat,
     getDeferredStat,
     getTaskStat,
-    getTaskEvents
+    getTaskEvents,
+    getMetric
 }

@@ -247,6 +247,8 @@ module.exports = {
         router.post("/stat/events", [  DBCache, lockCurrentDataset,  ade20TaskDashboard.getTaskEvents])
         router.post("/stat/assigned", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getAssignedStat])
 
+        router.post("/stat/metric", [ DBCache, lockCurrentDataset,  ade20TaskDashboard.getMetric])
+        
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         const adeGrants = require("./src/ade-grants")

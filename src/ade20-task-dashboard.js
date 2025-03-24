@@ -489,6 +489,22 @@ const getTaskStat = async (req, res) => {
     }
 }
 
+
+const getMetric = async (req, res) => {
+    
+    try {
+        let result = await STAT.getMetric(req.body)
+        res.send(result)
+
+    } catch (e) {
+        res.send({
+            error: `${e.toString()}\n${e.stack}`,
+            requestBody: req.body
+        })
+    }
+}
+
+
 const getTaskEvents = async (req, res) => {
     
     try {
@@ -534,7 +550,8 @@ module.exports = {
     getDeferredStat,
     getTaskStat,
     getTaskEvents,
-    getAssignedStat
+    getAssignedStat,
+    getMetric
 
 
     
