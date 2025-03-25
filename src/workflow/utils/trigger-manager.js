@@ -99,6 +99,7 @@ const select = async selector => {
         pipeline
     })
 
+    log(triggers)
     return triggers.filter(normalizeSelector(selector))
 
 }
@@ -133,7 +134,7 @@ const getTriggersInfo = async selector => {
     // ]
 
     let triggers = await select(selector)
-    // log("triggers", triggers)
+    log("triggers", triggers)
 
     const loadCounts = async trigger => {
         let stat = await docdb.countDocuments({

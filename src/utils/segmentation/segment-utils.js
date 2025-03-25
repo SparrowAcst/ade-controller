@@ -23,7 +23,7 @@ const hasSegmentationInconsistency = diff => {
         .reduce((a, b) => a || b, false) : false
 }
 
-const hasPolygonsInconsistency = diff => diff.length > 0
+const hasPolygonsInconsistency = diff => diff && diff.length && diff.length > 0
 
 const getPolygonsInconsistency = polygonArray => {
 
