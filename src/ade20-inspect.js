@@ -234,6 +234,7 @@ const getExams = async (req, res) => {
                     _id: 0,
                     id: "$_id.id",
                     state: "$_id.state",
+                    comment: 1,
                     dia: "$forms.patient.data.diagnosisTags",
                     recordState: 1,
                 },
