@@ -21,6 +21,11 @@ module.exports = {
 
             datasets: {
                 collection: "ADE-SETTINGS.datasets",
+                pipeline: [{
+                    $sort: {
+                        name: 1
+                    }
+                }]
             },
 
             diagnosisTags: {
@@ -149,7 +154,7 @@ module.exports = {
 
         ////////////////////////////////////////////////////////////////////////////////////
 
-        const adeInspectPatient = require("./src/ade20-inspect-patient")
+         const adeInspectPatient = require("./src/ade20-inspect-patient")
 
         router.post("/inspect-patient/get-records/", [authorize, DBCache, lockCurrentDataset, adeInspectPatient.getRecords])
         router.post("/inspect-patient/segment/", [authorize, DBCache, lockCurrentDataset, adeInspectPatient.getSegmentation])
@@ -158,6 +163,21 @@ module.exports = {
         // router.post("/inspect-patient/update-form/", [authorize, DBCache, lockCurrentDataset,  adeInspectPatient.updateForm])
         router.post("/inspect-patient/get-tags/", [authorize, DBCache, lockCurrentDataset, adeInspectPatient.getTags])
 
+
+        ////////////////////////////////////////////////////////////////////////////////////
+
+        const adeInspectLabeling = require("./src/ade20-inspect-labeling")
+
+        router.post("/inspect-labeling/get-record/", [authorize, DBCache, lockCurrentDataset,  adeInspectLabeling.getRecordData])
+        router.post("/inspect-labeling/chart/v2", [authorize, DBCache, lockCurrentDataset,  adeInspectLabeling.getVersionChart1])
+        router.post("/inspect-labeling/get-metadata/", [authorize, DBCache, lockCurrentDataset,  adeInspectLabeling.getMetadata])
+        router.post("/inspect-labeling/analysis/", [authorize, DBCache, lockCurrentDataset, adeInspectLabeling.getSegmentationAnalysis])
+        router.post("/inspect-labeling/forms/", [authorize, DBCache, lockCurrentDataset, adeInspectLabeling.getForms])
+        
+
+        router.get("/inspect-labeling/segmentation/:currentDataset/:recordId", [DBCache, adeInspectLabeling.getSegmentationData])
+        router.post("inspect-labeling/segmentation/", adeInspectLabeling.updateSegmentationData)
+        
 
         ////////////////////////////////////////////////////////////////////////////////////
 
