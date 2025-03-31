@@ -222,6 +222,9 @@ const getExams = async (req, res) => {
                         id: "$id",
                         state: "$state",
                     },
+                    comment: {
+                        $first: "$comment"
+                    },
                     recordState: {
                         $push: "$recordState",
                     },
