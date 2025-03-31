@@ -53,7 +53,8 @@ const getForms = async (req, res) => {
             result = {
                 patient: data.forms.patient.data,
                 echo: data.forms.echo.data,
-                ekg: data.forms.ekg.data,  
+                ekg: data.forms.ekg.data,
+                attachements: data.forms.attachements.data,  
                 examination: {
                     id: data.id,
                     patientId: data.id,
