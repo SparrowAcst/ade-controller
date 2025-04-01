@@ -1,23 +1,23 @@
-const { 
-    extend, 
-    sortBy, 
-    uniq, 
-    flattenDeep, 
-    find, 
-    first, 
-    last, 
-    isUndefined, 
-    isNull, 
-    keys, 
-    isArray, 
-    isString, 
-    isObject, 
-    remove 
+const {
+    extend,
+    sortBy,
+    uniq,
+    flattenDeep,
+    find,
+    first,
+    last,
+    isUndefined,
+    isNull,
+    keys,
+    isArray,
+    isString,
+    isObject,
+    remove
 } = require("lodash")
 
 const moment = require("moment")
 
-const log  = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
+const log = require("./workflow/utils/logger")(__filename) //(path.basename(__filename))
 
 const uuid = require("uuid").v4
 const isValidUUID = require("uuid").validate
@@ -158,7 +158,7 @@ const getExams = async (req, res) => {
         let options = req.body.options
 
         const { schema } = req.body.cache.currentDataset
-        
+
         options.bodySpots = options.bodySpots || [
             "Apex",
             "Tricuspid",
@@ -197,57 +197,65 @@ const getExams = async (req, res) => {
 
         const statPipeline = [{
             $lookup: {
-                    from: "labels",
-                    localField: "id",
-                    foreignField: "examinationId",
-                    as: "result",
+                from: "labels",
+                localField: "id",
+                foreignField: "examinationId",
+                as: "result",
+            },
+        }, {
+            $unwind: {
+                path: "$result",
+            },
+        }, {
+            $match: {
+                "result.Body Spot": {
+                    $in: options.bodySpots
                 },
-            }, {
-                $unwind: {
-                    path: "$result",
+            },
+        }, {
+            $addFields: {
+                recordState: "$result.state",
+                commits: {
+                    dataId: "$result.id",
+                    commit: "$result.commits"
+                }
+            },
+        }, {
+            $group: {
+                _id: {
+                    id: "$id",
+                    state: "$state",
                 },
-            }, {
-                $match: {
-                    "result.Body Spot": {
-                        $in: options.bodySpots
-                    },
+                comment: {
+                    $first: "$comment"
                 },
-            }, {
-                $addFields: {
-                    recordState: "$result.state",
+                recordState: {
+                    $push: "$recordState",
                 },
-            }, {
-                $group: {
-                    _id: {
-                        id: "$id",
-                        state: "$state",
-                    },
-                    comment: {
-                        $first: "$comment"
-                    },
-                    recordState: {
-                        $push: "$recordState",
-                    },
-                    forms: {
-                        $first: "$forms",
-                    },
+                commits: {
+                    $push: "$commits",
                 },
-            }, {
-                $project: {
-                    _id: 0,
-                    id: "$_id.id",
-                    state: "$_id.state",
-                    comment: 1,
-                    dia: "$forms.patient.data.diagnosisTags",
-                    recordState: 1,
+
+                forms: {
+                    $first: "$forms",
                 },
-            }, ]
-      
+            },
+        }, {
+            $project: {
+                _id: 0,
+                id: "$_id.id",
+                state: "$_id.state",
+                comment: 1,
+                dia: "$forms.patient.data.diagnosisTags",
+                recordState: 1,
+                commits: 1
+            },
+        }, ]
+
         const pipeline = []
             .concat(options.valueFilter || [])
             .concat(options.eventData.filter || [])
-            .concat([
-                {
+            .concat([{
                     $sort: (options.sort == "id, Z-A") ? {
                         "id": -1
                     } : {
@@ -289,9 +297,9 @@ const selectExams = async (req, res) => {
     try {
 
         let options = req.body.options
-        
+
         const { schema } = req.body.cache.currentDataset
-        
+
 
         if (options.pipeline.length == 0) {
             res.send({

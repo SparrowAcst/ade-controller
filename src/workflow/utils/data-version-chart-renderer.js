@@ -1651,7 +1651,7 @@ const renderItem = (params, api) => {
         if (
             // (source.type == "main" && target.type == "branch") ||
             // (source.type == "branch" && target.type == "branch") ||
-            (/*source.type == "submit" && */ target.type == "merge")
+            (/*source.type == "submit" && */ ["merge", "main"].includes(target.type))
             // (source.type == "submit" && target.type == "branch") 
             // (source.type == "merge" && target.type == "branch")
         ) {
