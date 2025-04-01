@@ -22,7 +22,7 @@ const dataDiff = require("../../utils/segmentation/data-diff")
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "minutes"],
+    DEFFERED_TIMEOUT: [30, "minutes"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
@@ -88,7 +88,7 @@ const findPretendent = async (options, agent, altVersions) => {
         log("REQUIRED notInvolved:", notInvolved)
         log("REQUIRED involved:", involved)
         log("REQUIRED", involved.length, agent.requiredExperts.count)
-            
+
         if (involved.length < agent.requiredExperts.count) {
             if (notInvolved.length > 0) {
                 return notInvolved[0]
@@ -143,10 +143,10 @@ const createCommand = agent => async (error, message, next) => {
 
         if (pretendent) {
 
-             let index = altVersions.length
+            let index = altVersions.length
 
             let comparedVersions = metadata.baseVersions.slice(altVersions.length, altVersions.length + 2)
-            if(comparedVersions.length < 2) comparedVersions.push(metadata.baseVersions[0]) 
+            if (comparedVersions.length < 2) comparedVersions.push(metadata.baseVersions[0])
 
 
             metadata = extend({}, metadata, {
@@ -379,10 +379,10 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
         return result
     }
 
-   async getSegmentationAnalysis(sourceKey, mode) {
-        
+    async getSegmentationAnalysis(sourceKey, mode) {
+
         const { Key } = this.getEmployeeService()
-        
+
         let data = await this.read(sourceKey, mode)
         let result = await super.getSegmentationAnalysis(sourceKey)
 
@@ -391,7 +391,7 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
             .map(a => a.data.segmentation)
             .map(d => (d) ? segmentationAnalysis.parse(d).segments : [])
 
-        let segmentations =  [segmentation].concat(altSegmentations)   
+        let segmentations = [segmentation].concat(altSegmentations)
         if (altSegmentations.length > 0) {
             result.diff = segmentationAnalysis.getSegmentsDiff(segmentations)
             let inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(result.diff)
@@ -567,6 +567,10 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
     async commit({ user, sourceKey, data, metadata }) {
 
         log(`${this.ALIAS} commit...`)
+
+        metadata = extend({}, metadata, { expiredAt: null })
+
+
         const employeeService = this.getEmployeeService()
         const { Task, Key, updateEmployee } = employeeService
 
@@ -576,8 +580,8 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
             .map(a => Key(a).taskState())
             .filter(s => s == "submit").length == this.altCount
 
-        
-        log("altVersions", JSON.stringify(ctx.task.altVersions, null, " "))    
+
+        log("altVersions", JSON.stringify(ctx.task.altVersions, null, " "))
 
         if (!isPossibleMerge) {
 
@@ -604,47 +608,47 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
 
         if (incst) {
 
-                let mergedTask = await Task.merge({
-                    user,
-                    sourceKey: ctx.task.key,
-                    metadata: extend({}, ctx.task.metadata, metadata, {
-                        task: this.ALIAS,
-                        employee: user,
-                        status: "merge",
-                        decoration: this.decoration
-                    }),
-                    data: ctx.data,
-                    altVersions: ctx.task.altVersions,
-                    noSyncAltVersions: true,
-                    waitFor: null
+            let mergedTask = await Task.merge({
+                user,
+                sourceKey: ctx.task.key,
+                metadata: extend({}, ctx.task.metadata, metadata, {
+                    task: this.ALIAS,
+                    employee: user,
+                    status: "merge",
+                    decoration: this.decoration
+                }),
+                data: ctx.data,
+                altVersions: ctx.task.altVersions,
+                noSyncAltVersions: true,
+                waitFor: null
 
-                })
+            })
 
-                ctx.task = mergedTask
-                await this.reject({
-                    user,
-                    sourceKey: ctx.task.key,
-                    altVersions: [],
-                    metadata: extend({}, ctx.task.metadata, metadata, {
-                        comment: "Data is not consistent.",
-                        baseKey: ctx.task.key,
-                        baseVersions: ctx.task.altVersions,
-                    }),
-                    waitFor: null
+            ctx.task = mergedTask
+            await this.reject({
+                user,
+                sourceKey: ctx.task.key,
+                altVersions: [],
+                metadata: extend({}, ctx.task.metadata, metadata, {
+                    // comment: "Data is not consistent.",
+                    baseKey: ctx.task.key,
+                    baseVersions: ctx.task.altVersions,
+                }),
+                waitFor: null
 
-                })
+            })
 
-                // ctx.task = mergedTask
-                // await this.reject({
-                //     user,
-                //     sourceKey: ctx.task.key,
-                //     altVersions: ctx.task.altVersions,
-                //     metadata: extend({}, metadata, {
-                //         comment: "Data is not consistent."
-                //     }),
+            // ctx.task = mergedTask
+            // await this.reject({
+            //     user,
+            //     sourceKey: ctx.task.key,
+            //     altVersions: ctx.task.altVersions,
+            //     metadata: extend({}, metadata, {
+            //         comment: "Data is not consistent."
+            //     }),
 
-                // })
- 
+            // })
+
             return
 
         }
@@ -743,7 +747,7 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
 
         let options = await this.read(sourceKey)
         if (!options) return {}
-            
+
         let altSegmentations = options.altVersions
             .map(a => a.data.segmentation)
             .map(d => (d) ? segmentationAnalysis.parse(d).segments : [])
@@ -753,7 +757,7 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
             let diff = segmentationAnalysis.getSegmentsDiff(altSegmentations)
             inconsistency = segmentationAnalysis.getNonConsistencyIntervalsForSegments(diff)
             inconsistency = inconsistency.map(d => [d.start.toFixed(3), d.end.toFixed(3)])
-        }    
+        }
 
 
         let segmentationData = (options.data.segmentation) ? {
@@ -778,11 +782,11 @@ const Cross_Merge_Pipeline_Agent = class extends Agent {
             "Other murmurs": options.data["Other murmurs"],
             inconsistency,
             "data": ((segmentationData) ? [segmentationData] : [])
-                    .concat(options.altVersions.map((a, index) => ({
-                        user: a.version.user +"-"+index,
-                        readonly: true,
-                        segmentation: altSegmentations[index]
-                    })))
+                .concat(options.altVersions.map((a, index) => ({
+                    user: a.version.user + "-" + index,
+                    readonly: true,
+                    segmentation: altSegmentations[index]
+                })))
         }
 
         return requestData

@@ -25,7 +25,7 @@ const dataDiff = require("../../utils/segmentation/data-diff")
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "hours"],
+    DEFFERED_TIMEOUT: [30, "minutes"],
     // DEFFERED_TIMEOUT: [15, "seconds"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
@@ -638,7 +638,8 @@ const Cross_Labeling_Agent = class extends Agent {
         const employeeService = this.getEmployeeService()
         const { Task, Key, updateEmployee } = employeeService
 
-        
+        metadata.expiredAt = null
+
         let ctx = await this.read(sourceKey)
         // let segCtx = await this.getSegmentationAnalysis(sourceKey)
 

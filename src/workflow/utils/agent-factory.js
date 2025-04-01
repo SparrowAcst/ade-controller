@@ -8,7 +8,7 @@ const log  = require("./logger")(__filename)
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "minutes"],
+    DEFFERED_TIMEOUT: [30, "minutes"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
@@ -271,7 +271,7 @@ const Basic_Labeling_Agent = class extends Agent {
 
         log(`${this.ALIAS} commit...`, metadata)
 
-        metadata.expiredAt = null
+        metadata = extend({}, metadata, {expiredAt: null})
 
         const employeeService = this.getEmployeeService()
         const { Task, employee } = employeeService

@@ -416,6 +416,10 @@ const VersionManager = class extends EventEmitter {
                 dataView: DATAVIEW[this.dataCollection](data)
             }
 
+            if(data){
+                delete data.scheduledWorkflow
+            }
+            
             data.commits = data.commits || []
             data.commits.push({
                 date: new Date(),

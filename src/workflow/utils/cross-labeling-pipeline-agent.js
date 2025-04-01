@@ -31,7 +31,7 @@ const dataDiff = require("../../utils/segmentation/data-diff")
 
 const DEFAULT_OPTIONS = {
     FEEDBACK_DELAY: 2 * 1000,
-    DEFFERED_TIMEOUT: [1, "minutes"],
+    DEFFERED_TIMEOUT: [30, "minutes"],
     dataCollection: "labels",
     savepointCollection: "savepoints",
     TASK_QUOTE: 5
@@ -600,6 +600,8 @@ const Cross_Labeling_Pipeline_Agent = class extends Agent {
         const employeeService = this.getEmployeeService()
         const { Task, Key, updateEmployee } = employeeService
 
+        metadata = extend({}, metadata, {expiredAt: null})
+
 
         let ctx = await this.read(sourceKey)
 
@@ -652,7 +654,7 @@ const Cross_Labeling_Pipeline_Agent = class extends Agent {
                 sourceKey: ctx.task.key,
                 altVersions: [],
                 metadata: extend({}, ctx.task.metadata, metadata, {
-                    comment: "Data is not consistent.",
+                    // comment: "Data is not consistent.",
                     baseKey: ctx.task.key,
                     baseVersions: ctx.task.altVersions,
                 }),
