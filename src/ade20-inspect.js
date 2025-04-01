@@ -218,7 +218,11 @@ const getExams = async (req, res) => {
                 commits: {
                     dataId: "$result.id",
                     commit: "$result.commits"
-                }
+                },
+                scheduledWorkflow: {
+                    dataId: "$result.id",
+                    workflow: "$result.scheduledWorkflow",
+                },
             },
         }, {
             $group: {
@@ -235,6 +239,9 @@ const getExams = async (req, res) => {
                 commits: {
                     $push: "$commits",
                 },
+                scheduledWorkflow: {
+                    $push: "$scheduledWorkflow",
+                },
 
                 forms: {
                     $first: "$forms",
@@ -248,7 +255,8 @@ const getExams = async (req, res) => {
                 comment: 1,
                 dia: "$forms.patient.data.diagnosisTags",
                 recordState: 1,
-                commits: 1
+                commits: 1,
+                scheduledWorkflow: 1,
             },
         }, ]
 
